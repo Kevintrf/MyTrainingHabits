@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "MyTrainingHabits",
+    "slug": "mytraininghabits",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kevintrf.mytraininghabits"
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kevintrf.mytraininghabits",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/rest_timer_alert.mp3"]
+        }
+      ]
+    ]
+  }
+}
