@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (12)
+
+### fix: tapping the rest-alarm notification cleared it but stopped opening the app
+The previous fix's `context.startActivity()` call from inside the broadcast receiver cleared the notification correctly but no longer brought the app forward. Most likely cause: Android's background-activity-launch restrictions don't reliably treat a plain `startActivity()` call from a `BroadcastReceiver` as user-initiated, even though the receiver only runs because of a notification tap — the exemption is tied to the platform's `PendingIntent` activation path specifically. Changed the launch to build its own `PendingIntent.getActivity(...)` and `.send()` it, keeping it inside that path instead of calling `startActivity()` directly. Not independently confirmed on-device yet.
+
+---
+
 ## 2026-07-21 (11)
 
 ### fix: exercise card expand/collapse tap target too small on WorkoutScreen
