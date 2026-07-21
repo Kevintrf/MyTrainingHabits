@@ -7,6 +7,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 interface RestAlarmModuleType {
   scheduleRestAlarm(triggerAtMillis: number, soundEnabled: boolean): void;
   cancelRestAlarm(): void;
+  clearRestAlarmNotification(): void;
 }
 
 const RestAlarmNativeModule = requireOptionalNativeModule<RestAlarmModuleType>('RestAlarm');
@@ -23,6 +24,15 @@ export function scheduleRestAlarm(triggerAtMillis: number, soundEnabled: boolean
 
 export function cancelRestAlarm(): void {
   RestAlarmNativeModule?.cancelRestAlarm();
+}
+
+// Clears the "Rest complete" notification if one is currently showing. Meant to be called
+// whenever the app comes to the foreground, regardless of how — this is the reliable way to
+// clear it (routing the clear through the notification's own tap action broke the app from
+// reopening at all; see RestAlarmService.kt's content-intent comment). A safe no-op if there's
+// nothing to clear.
+export function clearRestAlarmNotification(): void {
+  RestAlarmNativeModule?.clearRestAlarmNotification();
 }
 
 export function isRestAlarmAvailable(): boolean {

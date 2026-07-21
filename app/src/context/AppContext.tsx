@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Cycle } from '../services/api';
 import { getOrCreateActiveCycle, startNewCycle as startNewCycleDb } from '../db/cycles';
 import { getSettings } from '../db/settings';
-import { scheduleRestCompleteNotification, cancelRestNotification } from '../services/restTimerNotifications';
+import { scheduleRestCompleteNotification, cancelRestNotification, clearLingeringRestNotification } from '../services/restTimerNotifications';
 
 // TODO: replace with real user from auth
 export const USER_ID = 1;
@@ -78,6 +79,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Pre-fetch on app open so screens have data immediately
   useEffect(() => {
     refreshCycle();
+  }, []);
+
+  // Clears a lingering "Rest complete" notification whenever the app is or becomes
+  // foregrounded — cold launch (e.g. tapping the notification opened the app fresh, so there's
+  // no prior AppState to transition from) and every later background→foreground resume alike.
+  // Deliberately decoupled from the notification's own tap action — see
+  // restTimerNotifications.ts's clearLingeringRestNotification for why.
+  useEffect(() => {
+    clearLingeringRestNotification();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        clearLingeringRestNotification();
+      }
+    });
+    return () => subscription.remove();
   }, []);
 
   return (

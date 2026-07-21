@@ -16,7 +16,7 @@
 //   (including the known aiff/wav/caf-only custom-sound limitation) unchanged.
 import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
-import { scheduleRestAlarm, cancelRestAlarm } from 'rest-alarm';
+import { scheduleRestAlarm, cancelRestAlarm, clearRestAlarmNotification } from 'rest-alarm';
 
 // Filename (with extension) of the bundled alert sound, registered via the expo-notifications
 // config plugin's `sounds` array in app.json — that's what actually copies the file into
@@ -94,6 +94,17 @@ export async function cancelRestNotification(notificationId: string): Promise<vo
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch {
     // already fired or already cancelled — nothing to do
+  }
+}
+
+// Clears a lingering "Rest complete" notification, if any. Call whenever the app comes to the
+// foreground (see AppContext's AppState listener) — tapping the notification itself reliably
+// reopens the app (see RestAlarmService.kt) but doesn't reliably clear itself, so clearing is
+// handled here instead, decoupled from *how* the app was foregrounded. No-op on iOS and a
+// safe no-op on Android if there's nothing to clear.
+export function clearLingeringRestNotification(): void {
+  if (Platform.OS === 'android') {
+    clearRestAlarmNotification();
   }
 }
 

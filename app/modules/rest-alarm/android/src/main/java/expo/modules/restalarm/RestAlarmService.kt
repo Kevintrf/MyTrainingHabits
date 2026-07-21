@@ -107,20 +107,27 @@ class RestAlarmService : Service() {
       .build()
   }
 
-  // Tapping the notification routes through RestAlarmReceiver (ACTION_OPEN_APP) rather than
-  // launching the app directly: the receiver explicitly cancels this notification before
-  // bringing the app forward, which is more reliable than depending on setAutoCancel alone to
-  // clear it. The receiver resumes the existing task (FLAG_ACTIVITY_REORDER_TO_FRONT) rather
-  // than cold-launching a fresh instance, so it brings back whatever the app was already
-  // showing — e.g. the workout being logged — whenever the process is still alive.
-  private fun buildContentIntent(): PendingIntent {
-    val intent = Intent(this, RestAlarmReceiver::class.java).apply {
-      action = RestAlarmReceiver.ACTION_OPEN_APP
-    }
-    return PendingIntent.getBroadcast(
+  // Tapping the notification launches the app directly via a PendingIntent set right here as
+  // the content intent — this is the one version of "tap to reopen" that's actually been
+  // confirmed reliable on-device. Two attempts at clearing the notification via an
+  // intermediate BroadcastReceiver (raw startActivity(), then PendingIntent.send() from
+  // within the receiver) both broke reopening entirely, even though the receiver only ever
+  // ran because of this exact tap — Android's "was this user-initiated" exemption for
+  // background-activity-launch restrictions appears tied specifically to a notification's own
+  // content-intent activation, not to whatever a receiver does afterward in response to it.
+  // Clearing the notification is handled by a completely different, decoupled mechanism
+  // instead: `clearRestAlarmNotification()` (RestAlarmModule.kt), called from JS whenever the
+  // app comes to the foreground for any reason — see AppContext's AppState listener.
+  // FLAG_ACTIVITY_REORDER_TO_FRONT resumes the existing task rather than cold-launching a
+  // fresh instance, so it brings back whatever the app was already showing (e.g. the workout
+  // being logged) whenever the process is still alive.
+  private fun buildContentIntent(): PendingIntent? {
+    val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+    return PendingIntent.getActivity(
       this,
       CONTENT_REQUEST_CODE,
-      intent,
+      launchIntent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
   }
@@ -216,8 +223,8 @@ class RestAlarmService : Service() {
   companion object {
     private const val OLD_CHANNEL_ID = "rest-alarm-service"
     private const val CHANNEL_ID = "rest-alarm-service-v2"
-    // Not private — RestAlarmReceiver's ACTION_OPEN_APP handler cancels this same id when the
-    // notification is tapped.
+    // Not private — RestAlarmModule's clearRestAlarmNotification() cancels this same id when
+    // the app comes to the foreground.
     const val NOTIFICATION_ID = 4272
     private const val CONTENT_REQUEST_CODE = 4273
     private const val MAX_PLAYBACK_MS = 15_000L

@@ -4,6 +4,15 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (13)
+
+### fix: decouple clearing the rest-alarm notification from tapping it
+Two straight attempts at clearing the notification via its own tap action (routing through the broadcast receiver, first with a raw `startActivity()`, then with a secondary `PendingIntent`) both broke the app from reopening at all when tapped — confirming the "user-initiated" exemption for Android's background-activity-launch restrictions is tied specifically to a notification's own direct content intent, not to anything a receiver does afterward in response to it.
+
+Reverted the content intent to a direct `PendingIntent.getActivity()` — the one version confirmed to reliably reopen the app — and moved clearing to a completely separate mechanism: a new `clearRestAlarmNotification()` on the native module, called from a `AppState` listener in `AppContext` whenever the app comes to the foreground, for any reason (notification tap, app icon, recents), not just the tap. Also covers cold launch, where `AppState`'s `change` event never fires since there's no prior state to transition from.
+
+---
+
 ## 2026-07-21 (12)
 
 ### fix: tapping the rest-alarm notification cleared it but stopped opening the app

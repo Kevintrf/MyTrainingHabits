@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.AlarmManagerCompat
+import androidx.core.app.NotificationManagerCompat
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -57,6 +58,19 @@ class RestAlarmModule : Module() {
       // resolution against the generic `() -> R` one.
       context.stopService(Intent(context, RestAlarmService::class.java))
       Unit
+    }
+
+    // Called from JS whenever the app comes to the foreground (see AppContext's AppState
+    // listener), regardless of *how* it got there — tapping the notification, tapping the app
+    // icon, switching from recents, all of it. This is the reliable way to clear a stale
+    // rest-complete notification: routing the clear through the notification's own tap action
+    // (via an intermediate BroadcastReceiver) turned out to break the app from reopening at
+    // all — see RestAlarmService's content-intent comment for why. Decoupling "clear" from
+    // "reopen" entirely sidesteps that: this is just a plain cancel call from an already-running
+    // JS engine in an already-foregrounded app, nothing to do with background-launch
+    // restrictions. Cancelling a notification id that doesn't currently exist is a safe no-op.
+    Function("clearRestAlarmNotification") {
+      NotificationManagerCompat.from(context).cancel(RestAlarmService.NOTIFICATION_ID)
     }
   }
 
