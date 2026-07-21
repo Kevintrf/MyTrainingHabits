@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (4)
+
+### fix: rest-complete sound still silenced in Vibrate mode after the Do Not Disturb fix
+The previous fix targeted Do Not Disturb specifically, but the user's actual phone setting was "Vibrate" sound mode — a different, more basic ringer mode that standard Android says shouldn't affect the Alarm stream at all (which is exactly what the earlier Alarm-stream fix was supposed to handle). It still didn't play. Added `audioAttributes.flags.enforceAudibility: true` to the sound channel, which maps to Android's `AudioAttributes.FLAG_AUDIBILITY_ENFORCED` — documented specifically as "ensure this sound is heard regardless of stream volume/mute state." Channel id bumped again (`rest-timer-v4`) since this is one more channel-creation-time setting that won't retroactively apply to an already-created channel.
+
+Not yet confirmed working on-device. If it still isn't enough, the remaining option is a genuine native Android module (foreground service playing the sound directly via `MediaPlayer` on `STREAM_ALARM`, independent of the notification-sound pipeline entirely) rather than further channel-config attempts — flagged to the user as the real fallback.
+
 ## 2026-07-21 (3)
 
 ### fix: rest-complete sound still silenced by Do Not Disturb / silent sound mode

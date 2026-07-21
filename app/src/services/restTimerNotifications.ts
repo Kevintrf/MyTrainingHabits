@@ -30,15 +30,30 @@ const SOUND_FILE = 'rest_timer_alert.mp3';
 // exact-alarm permission: no runtime prompt, no JS API to check current grant status, just a
 // deep link to the right settings screen).
 //
-// Channel ids are versioned (v3) and old ones explicitly deleted on setup, on purpose:
+// `flags.enforceAudibility` maps to Android's `AudioAttributes.FLAG_AUDIBILITY_ENFORCED` —
+// documented as forcing the sound to be audible regardless of the current stream volume/mute
+// state. Added because usage=ALARM alone turned out not to be enough on at least one real
+// device (Samsung One UI, ringer mode "Vibrate"): standard Android says ringer mode shouldn't
+// touch the Alarm stream at all, but evidently something in that OEM's audio stack still
+// suppressed it. This flag is the one AudioAttributes knob left that's explicitly documented
+// for "ensure audibility no matter what."
+//
+// Channel ids are versioned (v4) and old ones explicitly deleted on setup, on purpose:
 // Android locks a channel's sound/importance/audio-attributes/bypassDnd the moment it's first
 // created — the app can never change them again, only the user can via system Settings. Any
 // device that already saw an old channel id (from testing this feature before a given fix)
 // would keep its original settings forever no matter what this file schedules now. Bump the
 // version suffix again if channel-level config ever changes here in the future.
-const CHANNEL_ID_SOUND = 'rest-timer-v3';
-const CHANNEL_ID_SILENT = 'rest-timer-v3-silent';
-const RETIRED_CHANNEL_IDS = ['rest-timer', 'rest-timer-silent', 'rest-timer-alarm', 'rest-timer-alarm-silent'];
+const CHANNEL_ID_SOUND = 'rest-timer-v4';
+const CHANNEL_ID_SILENT = 'rest-timer-v4-silent';
+const RETIRED_CHANNEL_IDS = [
+  'rest-timer',
+  'rest-timer-silent',
+  'rest-timer-alarm',
+  'rest-timer-alarm-silent',
+  'rest-timer-v3',
+  'rest-timer-v3-silent',
+];
 
 let handlerConfigured = false;
 
@@ -70,6 +85,10 @@ async function ensureNotificationSetup(): Promise<boolean> {
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.ALARM,
         contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+        flags: {
+          enforceAudibility: true,
+          requestHardwareAudioVideoSynchronization: false,
+        },
       },
     });
     await Notifications.setNotificationChannelAsync(CHANNEL_ID_SILENT, {
