@@ -4,6 +4,15 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (2)
+
+### fix: rest-complete sound inaudible in vibrate/silent mode, and stuck on the default tone
+Two compounding bugs. First, Android locks a notification channel's sound/importance the moment it's first created — the app can never change it again, only the user can via system Settings. The `rest-timer`/`rest-timer-silent` channels created while first building the sound feature got stuck with whatever sound they had at that point, so later code changes to the scheduling logic had no effect on-device. Retired those ids for good (`rest-timer-alarm`/`rest-timer-alarm-silent`) and delete the old ones on setup so Android is forced to create fresh channels with the current settings, and so they don't linger as dead entries in the app's notification settings.
+
+Second, even with the right sound resolving, it played on the Notification/Ringer volume stream, which is silenced by "vibrate only" — exactly the phone setting that made it inaudible. The sound channel's `audioAttributes.usage` is now `ALARM` instead of the default, routing playback to the Alarm stream: the same one actual alarm-clock apps use, unaffected by ringer/notification volume and mixed in over whatever's already playing on the Music stream rather than silenced by it.
+
+No native rebuild needed — this is a pure JS/config change (channel ids and their audio attributes), not a new native module or `app.json` plugin change, so a normal reinstall of the updated JS bundle picks it up.
+
 ## 2026-07-21 (1)
 
 ### feat: custom sound for the rest-complete notification, with an on/off toggle
