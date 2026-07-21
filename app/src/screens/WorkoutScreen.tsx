@@ -17,6 +17,7 @@ import { useApp } from '../context/AppContext';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail, markWorkoutComplete } from '../db/cycles';
 import { addSet, getLastSetsForExercise, markSetComplete, updateSet } from '../db/sets';
+import { updateProgramExercise } from '../db/program';
 import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise } from '../services/api';
 
 // Stable per-exercise key within a workout — falls back to name when the source
@@ -100,8 +101,11 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
 }) {
   const navigation = useNavigation<NativeStackNavigationProp<CycleStackParamList>>();
   const [expanded, setExpanded] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(exercise.program_exercise_notes ?? '');
   const allDone = exercise.sets.length > 0 && exercise.sets.every((s) => s.is_complete);
   const exerciseId = exercise.exercise_id;
+  const programExerciseId = exercise.program_exercise_id;
 
   async function handleAddSet() {
     if (exerciseId === null) return;
@@ -109,14 +113,36 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
     onChanged();
   }
 
+  function handleStartEditNote() {
+    if (programExerciseId === null) return;
+    setNoteDraft(exercise.program_exercise_notes ?? '');
+    setEditingNote(true);
+  }
+
+  async function handleCommitNote() {
+    setEditingNote(false);
+    if (programExerciseId === null) return;
+    await updateProgramExercise(programExerciseId, { notes: noteDraft.trim() || null });
+    onChanged();
+  }
+
   return (
     <View style={[styles.card, allDone && styles.cardDone]}>
-      <TouchableOpacity style={styles.cardHeader} activeOpacity={0.6} onPress={() => setExpanded((v) => !v)}>
+      <TouchableOpacity
+        style={styles.cardHeader}
+        activeOpacity={0.6}
+        onPress={() => setExpanded((v) => !v)}
+        onLongPress={programExerciseId !== null ? handleStartEditNote : undefined}
+        delayLongPress={350}
+      >
         <View style={styles.cardHeaderText}>
           <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
           <Text style={styles.exerciseMeta}>
             {exercise.sets.length} sets{exerciseId === null ? ' · removed from library' : ''}
           </Text>
+          {!!exercise.program_exercise_notes && !editingNote && (
+            <Text style={styles.exerciseNote} numberOfLines={1}>{exercise.program_exercise_notes}</Text>
+          )}
         </View>
 
         {exerciseId !== null && (
@@ -139,6 +165,20 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
         {allDone && <Ionicons name="checkmark-circle" size={20} color="#2D6A4F" />}
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#999" />
       </TouchableOpacity>
+
+      {editingNote && (
+        <TextInput
+          style={styles.noteInput}
+          value={noteDraft}
+          onChangeText={setNoteDraft}
+          onBlur={handleCommitNote}
+          placeholder="Add a note for this exercise..."
+          placeholderTextColor="#bbb"
+          autoFocus
+          returnKeyType="done"
+          autoComplete="off" textContentType="none" importantForAutofill="no"
+        />
+      )}
 
       {expanded && (
         <View style={styles.cardBody}>
@@ -242,7 +282,20 @@ const styles = StyleSheet.create({
   cardHeaderText: { flex: 1 },
   exerciseName: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   exerciseMeta: { fontSize: 12, color: '#999', marginTop: 2 },
+  exerciseNote: { fontSize: 12, color: '#999', fontStyle: 'italic', marginTop: 2 },
   headerIconBtn: { padding: 6 },
+  noteInput: {
+    marginHorizontal: 14,
+    marginBottom: 10,
+    backgroundColor: '#F9F9F9',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    color: '#1A1A1A',
+  },
   cardBody: {
     paddingHorizontal: 14,
     paddingBottom: 14,

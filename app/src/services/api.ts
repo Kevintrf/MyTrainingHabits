@@ -75,6 +75,12 @@ export interface CycleWorkoutExercise {
   exercise_id: number | null;
   exercise_name: string;
   exercise_type: ExerciseType | null;
+  // The program_exercises row this cycle exercise was stamped from, if it still exists (null
+  // if the program workout or this exercise's entry in it was deleted after the cycle
+  // started). Editing the note here edits the same underlying program_exercises.notes row
+  // shown in EditProgramWorkoutScreen — it's one shared note, not a per-cycle copy.
+  program_exercise_id: number | null;
+  program_exercise_notes: string | null;
   sets: CycleSet[];
 }
 

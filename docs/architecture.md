@@ -17,7 +17,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | Screen                    | Purpose                                                                |
 |---------------------------|--------------------------------------------------------------------------|
 | CycleScreen               | Main view — active cycle's workouts with done-checkboxes; "New Cycle" button |
-| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox); each card header has guide/history shortcut icons (hidden for exercises removed from the library) |
+| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
 | ExercisesScreen           | Browse and search the exercise library                                    |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
 | ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in free-exercise-db library, not custom exercises); links to ExerciseHistoryScreen |
@@ -130,6 +130,15 @@ scripts/import-free-exercise-db.py
 ```
 
 `db/schema.ts`'s `seedExercises()` deletes the old placeholder library (identified by `source = 'SEED' AND source_slug IS NULL` — every real import row always has a `source_slug`) and bulk-inserts from `SEED_EXERCISES_FULL`, guarded by a row-count check so the ~873-row insert loop only runs once, not on every app launch. User-created custom exercises (`source = 'USER'`) are never touched by this.
+
+## Program Exercise Notes
+
+A short free-text note (`program_exercises.notes`) on a single exercise's inclusion in a specific program workout — e.g. "start light" — distinct from `exercises.notes` (the exercise's own general notes, edited on ExerciseDetailScreen). Editable by long-press from two places, both editing the *same* row, not independent copies:
+
+- **EditProgramWorkoutScreen** — always shown (small italic text under the exercise name) when present; long-press opens an inline text field.
+- **WorkoutScreen** — same display/edit UX on each exercise card's header, long-press alongside the existing tap-to-expand (RN's touch system distinguishes short tap from long press on the same `TouchableOpacity` without conflict). Resolving *which* `program_exercises` row a cycle exercise came from reuses `getCycleWorkoutDetail`'s existing `program_exercises` join (originally added just for `ORDER BY pe.order_index`) — `pe.id`/`pe.notes` were simply added to the same `SELECT`. This can be `null` (hidden, no long-press wired up) if the program workout or this exercise's entry in it was deleted after the cycle was stamped out, since there's no longer a row to attach a note to.
+
+Kept deliberately minimal per how it was asked for: no note means no extra UI at all; a note is one line of small italic text, nothing else about either screen's layout changes.
 
 ## Rest Timer
 

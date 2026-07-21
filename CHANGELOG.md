@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (17)
+
+### feat: program-exercise notes also visible and editable from WorkoutScreen
+Extends the previous entry's per-program-exercise notes to the Cycle tab: each exercise card on WorkoutScreen now shows the same note (small italic text, only when present) and supports the same long-press-to-edit interaction alongside the existing tap-to-expand — long press and tap coexist fine on the same touchable. It's one shared note, not a per-cycle copy: editing it from a workout in progress updates the same `program_exercises.notes` row EditProgramWorkoutScreen edits. `getCycleWorkoutDetail`'s query already joined `program_exercises` (for exercise ordering) — reused that join to also pull `pe.id`/`pe.notes` rather than adding a second query. Long-press is a no-op if the exercise's program_exercises row no longer exists (program workout or this exercise's entry in it was deleted after the cycle was stamped out). Verified via smoke test that a note set from either screen is visible and editable from the other.
+
+---
+
 ## 2026-07-21 (16)
 
 ### feat: per-program-exercise notes in EditProgramWorkoutScreen
