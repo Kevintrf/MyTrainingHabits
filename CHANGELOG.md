@@ -4,6 +4,15 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (3)
+
+### fix: rest-complete sound still silenced by Do Not Disturb / silent sound mode
+The Alarm-stream fix from earlier today wasn't enough on its own — a device in Do Not Disturb, or a "Silent" sound mode (distinct from "Vibrate"), can suppress a notification's sound entirely before the audio stream it would use is even considered. Set the sound channel's `bypassDnd: true`, the officially-sanctioned way for a specific channel to be let through Do Not Disturb, and added the `ACCESS_NOTIFICATION_POLICY` permission it requires. That flag only takes effect once the user grants this app "Do Not Disturb access" — a special app-access toggle with no runtime prompt — so added `openNotificationPolicySettings()` (deep-links straight to that settings screen) and a matching row in SettingsScreen (Android only, shown when sound is enabled), same pattern as the existing exact-alarm row.
+
+Channel ids bumped again (`rest-timer-v3`/`rest-timer-v3-silent`) since Android locks a channel's config at creation — the previous ids would never pick up `bypassDnd` no matter what the code says now. All earlier ids are deleted on setup.
+
+Requires `npx expo prebuild --clean` (new manifest permission) before the next build, then granting "Do Not Disturb access" via the new Settings row for the fix to actually take effect.
+
 ## 2026-07-21 (2)
 
 ### fix: rest-complete sound inaudible in vibrate/silent mode, and stuck on the default tone

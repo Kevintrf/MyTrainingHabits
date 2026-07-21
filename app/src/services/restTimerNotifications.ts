@@ -18,22 +18,27 @@ const SOUND_FILE = 'rest_timer_alert.mp3';
 // *channel's* sound that plays, fixed at channel-creation time. So toggling sound on/off
 // can't be done per-notification; instead we maintain two channels and pick between them.
 //
-// The sound channel's AudioAttributes usage is ALARM (not the default NOTIFICATION), so its
-// sound plays on Android's Alarm stream — the same one actual alarm-clock apps use. This is
-// what makes it audible even when the phone's ringer/notification volume is set to vibrate
-// or silent (that only mutes the Ring/Notification stream, not Alarm), and it plays alongside
-// whatever's already on the Music stream rather than being silently dropped.
+// The sound channel's AudioAttributes usage is ALARM (not the default NOTIFICATION), so once
+// it's allowed to play, it's the Alarm volume slider that governs it, not Ring/Notification —
+// the same stream real alarm-clock apps use. That's necessary but not sufficient: a device in
+// Do-Not-Disturb / a "Silent"-style sound mode (as opposed to just "Vibrate") can suppress a
+// notification's sound entirely *before* stream routing is even considered, regardless of
+// which stream it would have used. The channel also sets `bypassDnd: true` for that reason —
+// the officially-sanctioned way for a specific channel to be allowed through Do Not Disturb —
+// but it only takes effect once the user grants this app "Do Not Disturb access" via
+// `openNotificationPolicySettings()` below (a special access toggle, same category as the
+// exact-alarm permission: no runtime prompt, no JS API to check current grant status, just a
+// deep link to the right settings screen).
 //
-// The 'rest-timer'/'rest-timer-silent' channel ids used before this fix are retired here on
-// purpose, not reused: Android locks a channel's sound/importance/audio-attributes the moment
-// it's first created — the app can never change them again, only the user can via system
-// Settings. Any device that already saw the old channel (e.g. from testing this feature
-// before the alarm-stream fix) would keep hearing its original sound forever no matter what
-// this file schedules now. New ids force Android to create fresh channels with the settings
-// below; the old ones are explicitly deleted so they don't linger as dead entries in Settings.
-const CHANNEL_ID_SOUND = 'rest-timer-alarm';
-const CHANNEL_ID_SILENT = 'rest-timer-alarm-silent';
-const RETIRED_CHANNEL_IDS = ['rest-timer', 'rest-timer-silent'];
+// Channel ids are versioned (v3) and old ones explicitly deleted on setup, on purpose:
+// Android locks a channel's sound/importance/audio-attributes/bypassDnd the moment it's first
+// created — the app can never change them again, only the user can via system Settings. Any
+// device that already saw an old channel id (from testing this feature before a given fix)
+// would keep its original settings forever no matter what this file schedules now. Bump the
+// version suffix again if channel-level config ever changes here in the future.
+const CHANNEL_ID_SOUND = 'rest-timer-v3';
+const CHANNEL_ID_SILENT = 'rest-timer-v3-silent';
+const RETIRED_CHANNEL_IDS = ['rest-timer', 'rest-timer-silent', 'rest-timer-alarm', 'rest-timer-alarm-silent'];
 
 let handlerConfigured = false;
 
@@ -58,8 +63,9 @@ async function ensureNotificationSetup(): Promise<boolean> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID_SOUND, {
       name: 'Rest Timer Alert',
-      description: 'Plays like an alarm — audible even in vibrate/silent mode and over other audio.',
+      description: 'Plays like an alarm — audible even in vibrate/silent/Do Not Disturb mode and over other audio, once Do Not Disturb access is granted in Settings.',
       importance: Notifications.AndroidImportance.HIGH,
+      bypassDnd: true,
       sound: SOUND_FILE,
       audioAttributes: {
         usage: Notifications.AndroidAudioUsage.ALARM,
@@ -136,6 +142,21 @@ export async function openExactAlarmSettings(): Promise<void> {
     // Older Android versions don't have this settings screen (the permission doesn't
     // exist pre-12, and exact alarms are unrestricted) — fall back to the app's own
     // settings page so there's still somewhere useful to land.
+    await Linking.openSettings();
+  }
+}
+
+// "Do Not Disturb access" — a special app access toggle (not a runtime permission prompt),
+// required for the sound channel's `bypassDnd: true` to actually take effect. Without it,
+// a device in Do Not Disturb or a "Silent"-style sound mode can suppress the rest-complete
+// sound entirely, before the channel's Alarm-stream routing even comes into play. As with
+// exact-alarm access, there's no JS API to check current grant status, so this just opens
+// the right settings screen directly instead of the app's generic settings page.
+export async function openNotificationPolicySettings(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  try {
+    await Linking.sendIntent('android.settings.NOTIFICATION_POLICY_ACCESS_SETTINGS');
+  } catch {
     await Linking.openSettings();
   }
 }

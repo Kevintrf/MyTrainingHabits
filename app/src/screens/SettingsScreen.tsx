@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getSettings, updateSettings } from '../db/settings';
-import { openExactAlarmSettings } from '../services/restTimerNotifications';
+import { openExactAlarmSettings, openNotificationPolicySettings } from '../services/restTimerNotifications';
 
 function sanitizeMinutes(v: string): string {
   return v.replace(/[^0-9]/g, '').slice(0, 1);
@@ -137,16 +137,32 @@ export default function SettingsScreen() {
               {Platform.OS === 'android' && (
                 <>
                   <View style={styles.cardDivider} />
-                  <TouchableOpacity style={styles.exactAlarmRow} onPress={openExactAlarmSettings}>
+                  <TouchableOpacity style={styles.settingsLinkRow} onPress={openExactAlarmSettings}>
                     <Ionicons name="alarm-outline" size={20} color="#2D6A4F" />
-                    <View style={styles.exactAlarmText}>
-                      <Text style={styles.exactAlarmTitle}>Notification arriving late?</Text>
-                      <Text style={styles.exactAlarmDesc}>
+                    <View style={styles.settingsLinkText}>
+                      <Text style={styles.settingsLinkTitle}>Notification arriving late?</Text>
+                      <Text style={styles.settingsLinkDesc}>
                         Android may delay it unless "Alarms & reminders" is allowed for this app. Tap to open that setting.
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color="#ccc" />
                   </TouchableOpacity>
+
+                  {soundEnabled && (
+                    <>
+                      <View style={styles.cardDivider} />
+                      <TouchableOpacity style={styles.settingsLinkRow} onPress={openNotificationPolicySettings}>
+                        <Ionicons name="volume-high-outline" size={20} color="#2D6A4F" />
+                        <View style={styles.settingsLinkText}>
+                          <Text style={styles.settingsLinkTitle}>Sound muted by silent mode?</Text>
+                          <Text style={styles.settingsLinkDesc}>
+                            Android needs "Do Not Disturb access" allowed for this app so the sound can play through silent/vibrate mode. Tap to open that setting.
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -192,8 +208,8 @@ const styles = StyleSheet.create({
   },
   durationUnit: { fontSize: 14, color: '#999', marginRight: 8 },
   durationWarning: { fontSize: 12, color: '#e74c3c', marginTop: 8 },
-  exactAlarmRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  exactAlarmText: { flex: 1 },
-  exactAlarmTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
-  exactAlarmDesc: { fontSize: 12, color: '#999', marginTop: 2 },
+  settingsLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  settingsLinkText: { flex: 1 },
+  settingsLinkTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+  settingsLinkDesc: { fontSize: 12, color: '#999', marginTop: 2 },
 });
