@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (10)
+
+### fix: rest-alarm notification didn't reliably clear on tap
+`setAutoCancel(true)` was already set but apparently wasn't reliably clearing the notification on tap. Made it explicit instead: the notification's tap action now routes through `RestAlarmReceiver` (a new `ACTION_OPEN_APP` branch on the existing receiver, rather than launching the app directly), which calls `NotificationManagerCompat.cancel()` on the notification before bringing the app forward. `setAutoCancel` is left in place too as a second, independent path to the same result.
+
+---
+
 ## 2026-07-21 (9)
 
 ### feat: rest-alarm notification tap resumes the app, no stacking, quieter still

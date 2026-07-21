@@ -107,19 +107,20 @@ class RestAlarmService : Service() {
       .build()
   }
 
-  // Tapping the notification brings the app back to whatever it was already showing (the
-  // current workout, if that's where the user left it) rather than cold-launching a fresh
-  // instance — REORDER_TO_FRONT resumes the existing task instead of restarting it. Falls
-  // back to no content intent (tap just dismisses, same as before) if the OS can't resolve a
-  // launch intent for this package, which shouldn't happen in practice but costs nothing to
-  // guard against.
-  private fun buildContentIntent(): PendingIntent? {
-    val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return null
-    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-    return PendingIntent.getActivity(
+  // Tapping the notification routes through RestAlarmReceiver (ACTION_OPEN_APP) rather than
+  // launching the app directly: the receiver explicitly cancels this notification before
+  // bringing the app forward, which is more reliable than depending on setAutoCancel alone to
+  // clear it. The receiver resumes the existing task (FLAG_ACTIVITY_REORDER_TO_FRONT) rather
+  // than cold-launching a fresh instance, so it brings back whatever the app was already
+  // showing — e.g. the workout being logged — whenever the process is still alive.
+  private fun buildContentIntent(): PendingIntent {
+    val intent = Intent(this, RestAlarmReceiver::class.java).apply {
+      action = RestAlarmReceiver.ACTION_OPEN_APP
+    }
+    return PendingIntent.getBroadcast(
       this,
       CONTENT_REQUEST_CODE,
-      launchIntent,
+      intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
   }
@@ -215,7 +216,9 @@ class RestAlarmService : Service() {
   companion object {
     private const val OLD_CHANNEL_ID = "rest-alarm-service"
     private const val CHANNEL_ID = "rest-alarm-service-v2"
-    private const val NOTIFICATION_ID = 4272
+    // Not private — RestAlarmReceiver's ACTION_OPEN_APP handler cancels this same id when the
+    // notification is tapped.
+    const val NOTIFICATION_ID = 4272
     private const val CONTENT_REQUEST_CODE = 4273
     private const val MAX_PLAYBACK_MS = 15_000L
     private const val PLAYBACK_VOLUME = 0.25f
