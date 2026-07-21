@@ -67,17 +67,33 @@ class RestAlarmService : Service() {
   private fun buildNotification(): Notification {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      // Retired: IMPORTANCE_LOW never pops up as a heads-up banner and never vibrates,
+      // regardless of anything else set on it — that's why the alert was only appearing
+      // silently in the shade. Channel ids are locked at creation (same rule as everywhere
+      // else in this saga), so this needs a new id, not just a change to the old one.
+      try {
+        manager.deleteNotificationChannel(OLD_CHANNEL_ID)
+      } catch (e: Exception) {
+        // never existed on this install — fine
+      }
       if (manager.getNotificationChannel(CHANNEL_ID) == null) {
-        manager.createNotificationChannel(
-          NotificationChannel(CHANNEL_ID, "Rest Timer", NotificationManager.IMPORTANCE_LOW)
-        )
+        val channel = NotificationChannel(CHANNEL_ID, "Rest Timer", NotificationManager.IMPORTANCE_HIGH).apply {
+          // The alert sound is played directly via MediaPlayer in playSound(), not through
+          // this channel — silence the channel's own sound so the system doesn't *also*
+          // play its default notification tone on top of it. Importance HIGH (for the
+          // heads-up popup + vibration) and channel sound are independent settings.
+          setSound(null, null)
+          enableVibration(true)
+        }
+        manager.createNotificationChannel(channel)
       }
     }
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("Rest complete")
       .setContentText("Time for your next set.")
       .setSmallIcon(resolveIconResource())
-      .setPriority(NotificationCompat.PRIORITY_LOW)
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
+      .setVibrate(VIBRATE_PATTERN)
       .setAutoCancel(true)
       .build()
   }
@@ -107,6 +123,9 @@ class RestAlarmService : Service() {
       mediaPlayer = MediaPlayer().apply {
         setAudioAttributes(attributes)
         setDataSource(this@RestAlarmService, soundUri)
+        // Half the amplitude the file plays at (1.0 = unchanged) — the alert was reported as
+        // too loud at full volume.
+        setVolume(PLAYBACK_VOLUME, PLAYBACK_VOLUME)
         isLooping = false
         setOnCompletionListener { stopPlaybackAndSelf() }
         setOnErrorListener { _, _, _ -> stopPlaybackAndSelf(); true }
@@ -168,8 +187,11 @@ class RestAlarmService : Service() {
   }
 
   companion object {
-    private const val CHANNEL_ID = "rest-alarm-service"
+    private const val OLD_CHANNEL_ID = "rest-alarm-service"
+    private const val CHANNEL_ID = "rest-alarm-service-v2"
     private const val NOTIFICATION_ID = 4272
     private const val MAX_PLAYBACK_MS = 15_000L
+    private const val PLAYBACK_VOLUME = 0.5f
+    private val VIBRATE_PATTERN = longArrayOf(0, 400, 200, 400)
   }
 }

@@ -4,6 +4,15 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (8)
+
+### fix: rest-alarm notification wasn't popping up or vibrating; sound too loud
+The service's notification channel used `IMPORTANCE_LOW`, which — independent of anything else configured on it — never shows as a heads-up popup and never vibrates; it only ever appears silently in the shade. Bumped to `IMPORTANCE_HIGH`, and since a HIGH channel plays the system's default tone unless told otherwise, explicitly silenced the channel's own sound (`setSound(null, null)`) so it doesn't stack on top of the sound this module already plays directly via `MediaPlayer`. Channel id bumped again (`rest-alarm-service` → `rest-alarm-service-v2`, old one deleted on setup) — same channel-immutability rule as everywhere else in this feature.
+
+Also halved the alert's playback volume (`MediaPlayer.setVolume(0.5f, 0.5f)`) — reported as too loud at the sound file's native level.
+
+---
+
 ## 2026-07-21 (7)
 
 ### fix: rest-alarm sound didn't play in foreground, and its notification vanished quickly
