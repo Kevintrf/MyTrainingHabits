@@ -81,6 +81,10 @@ export interface CycleWorkoutExercise {
   // shown in EditProgramWorkoutScreen — it's one shared note, not a per-cycle copy.
   program_exercise_id: number | null;
   program_exercise_notes: string | null;
+  // The program's target rep count for this exercise, if a program_exercises row still
+  // exists for it — shown as a grey placeholder suggestion on each unlogged set, not
+  // preloaded as a real value (see WorkoutScreen's SetRow).
+  program_exercise_default_reps: number | null;
   sets: CycleSet[];
 }
 

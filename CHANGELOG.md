@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (18)
+
+### feat: grey placeholder pre-fill for reps/weight, auto-commit on finish
+Unlogged sets in WorkoutScreen now show a suggested value as a grey placeholder rather than preloading it as a real (indistinguishable-from-entered) value: reps suggest the program's target rep count for that exercise, weight suggests whatever was logged last time for the same exercise (matched by set position). Marking a set complete with a field left untouched takes on the shown suggestion as the actual saved value; typing a real number overrides it as before, and un-marking a set never triggers the substitution. `getCycleWorkoutDetail` now also pulls `program_exercises.default_reps` through the join it already had for ordering/notes.
+
+---
+
 ## 2026-07-21 (17)
 
 ### feat: program-exercise notes also visible and editable from WorkoutScreen

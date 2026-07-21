@@ -26,17 +26,25 @@ function exerciseKey(exercise: CycleWorkoutExercise): string {
   return exercise.exercise_id !== null ? String(exercise.exercise_id) : `deleted:${exercise.exercise_name}`;
 }
 
-function SetRow({ set, lastSet, onToggled }: {
+function SetRow({ set, lastSet, defaultReps, onToggled }: {
   set: CycleSet;
   lastSet?: CycleSet;
+  // The program's target rep count for this exercise — shown as a grey placeholder
+  // suggestion, not preloaded as a real value (see below).
+  defaultReps: number | null;
   onToggled: () => void;
 }) {
-  const [reps, setReps] = useState(set.reps != null ? String(set.reps) : lastSet?.reps != null ? String(lastSet.reps) : '');
-  const [weight, setWeight] = useState(
-    set.weight_kg != null ? String(set.weight_kg) : lastSet?.weight_kg != null ? String(lastSet.weight_kg) : '',
-  );
+  // Seeded only from the set's own saved value, never from a suggestion — a suggestion
+  // (the program's default reps, or the weight last used for this exercise) is shown via
+  // `placeholder` instead, so it reads as grey/suggested rather than indistinguishable from
+  // something actually entered.
+  const [reps, setReps] = useState(set.reps != null ? String(set.reps) : '');
+  const [weight, setWeight] = useState(set.weight_kg != null ? String(set.weight_kg) : '');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { startRestTimer } = useApp();
+
+  const repsPlaceholder = defaultReps != null ? String(defaultReps) : 'reps';
+  const weightPlaceholder = lastSet?.weight_kg != null ? String(lastSet.weight_kg) : 'kg';
 
   function parsedPatch(r: string, w: string) {
     const repsNum = parseInt(r, 10);
@@ -54,8 +62,17 @@ function SetRow({ set, lastSet, onToggled }: {
 
   async function handleToggle() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    await updateSet(set.id, parsedPatch(reps, weight));
     const nowComplete = !set.is_complete;
+
+    // Finishing a set that was left blank takes on the shown grey suggestion rather than
+    // saving nothing — un-marking a set never does this, only completing one, and a field
+    // the user already typed something into is left exactly as entered.
+    const finalReps = nowComplete && reps === '' && defaultReps != null ? String(defaultReps) : reps;
+    const finalWeight = nowComplete && weight === '' && lastSet?.weight_kg != null ? String(lastSet.weight_kg) : weight;
+    if (finalReps !== reps) setReps(finalReps);
+    if (finalWeight !== weight) setWeight(finalWeight);
+
+    await updateSet(set.id, parsedPatch(finalReps, finalWeight));
     await markSetComplete(set.id, nowComplete);
     // Only starts the rest timer when finishing a set, not when un-marking one.
     if (nowComplete) startRestTimer();
@@ -68,7 +85,7 @@ function SetRow({ set, lastSet, onToggled }: {
       <TextInput
         style={styles.setInput}
         keyboardType="number-pad"
-        placeholder="reps"
+        placeholder={repsPlaceholder}
         placeholderTextColor="#bbb"
         value={reps}
         onChangeText={(v) => { setReps(v); schedule(v, weight); }}
@@ -77,7 +94,7 @@ function SetRow({ set, lastSet, onToggled }: {
       <TextInput
         style={styles.setInput}
         keyboardType="decimal-pad"
-        placeholder="kg"
+        placeholder={weightPlaceholder}
         placeholderTextColor="#bbb"
         value={weight}
         onChangeText={(v) => { setWeight(v); schedule(reps, v); }}
@@ -183,7 +200,13 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
       {expanded && (
         <View style={styles.cardBody}>
           {exercise.sets.map((s, i) => (
-            <SetRow key={s.id} set={s} lastSet={lastSets[i]} onToggled={onChanged} />
+            <SetRow
+              key={s.id}
+              set={s}
+              lastSet={lastSets[i]}
+              defaultReps={exercise.program_exercise_default_reps}
+              onToggled={onChanged}
+            />
           ))}
           {exerciseId !== null && (
             <TouchableOpacity style={styles.addSetBtn} onPress={handleAddSet}>
