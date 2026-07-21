@@ -65,6 +65,11 @@ See [../../database/schema.md](../../database/schema.md) for the database schema
 ```text
 app/
   App.tsx               Wraps AppProvider + RootNavigator + RestTimerBanner; calls initSchema() on load
+  modules/
+    rest-alarm/          Local native module, Android only — plays the rest-complete sound
+                          directly via a foreground service + MediaPlayer on the Alarm audio
+                          stream, bypassing expo-notifications' channel-based sound entirely.
+                          See docs/architecture.md's Rest Timer section for why.
   src/
     db/
       client.ts          SQLite DB singleton (expo-sqlite)
@@ -78,7 +83,8 @@ app/
                                `rest_timer_sound_enabled`)
       seedExercisesData.ts    AUTO-GENERATED — 873-exercise free-exercise-db data (see scripts/)
     services/
-      restTimerNotifications.ts  schedule/cancel the rest-complete local notification
+      restTimerNotifications.ts  schedule/cancel the rest-complete alert — Android delegates
+                                  to modules/rest-alarm, iOS uses expo-notifications directly
     assets/
       exerciseImages.ts    AUTO-GENERATED — static require() manifest, keyed by exercise slug
     components/
@@ -130,7 +136,8 @@ No backend or database server required — everything runs on-device via expo-sq
 - **Bundle identifiers must stay distinct from the old MyFoodHabits app.** `app.json` has `com.kevintrf.mytraininghabits` for both platforms; if the native `ios`/`android` folders are ever regenerated from an old checkout, verify they picked up this identifier and not `com.kevintrf.myfoodhabits` (the two would otherwise collide/overwrite on-device).
 - **expo-notifications (added 2026-07-18 for the rest timer) needs a native rebuild.** Adding it (or any native module / new `app.json` plugin) doesn't take effect until `npx expo prebuild --clean` regenerates the native projects — a plain JS change alone won't pick up the new native code or the Android `POST_NOTIFICATIONS` permission the plugin adds.
 - **Expo's notification API can't render a live-updating countdown inside a notification** — that's Android's native "chronometer" notification style, not exposed by `expo-notifications`. The rest timer's in-app banner counts down; the scheduled notification is a one-shot alert when time's up, not a ticking display.
-- **Android 8+ ignores per-notification sound — only the channel's sound (fixed at channel creation) plays.** Found by reading `ExpoNotificationBuilder.kt`. To make the rest-complete sound toggleable, `restTimerNotifications.ts` maintains two channels (`rest-timer` with the custom sound, `rest-timer-silent` with none) and switches `channelId` based on the setting, rather than varying `content.sound` per call (which is silently ignored on API 26+).
+- **The rest-complete sound is not an `expo-notifications` notification sound on Android anymore.** It's played directly via the local `app/modules/rest-alarm` native module (MediaPlayer on the Alarm audio stream, triggered by a native `AlarmManager`/foreground service). This exists because a `NotificationChannel`-based sound — even with `AudioAttributes.usage=ALARM`, `bypassDnd`, and `FLAG_AUDIBILITY_ENFORCED` all set — still didn't reliably play on the test device in "Vibrate" sound mode; see `docs/architecture.md`'s Rest Timer section and `CHANGELOG.md`'s 2026-07-21 entries before touching notification-channel sound config again, so an already-ruled-out fix doesn't get re-tried. iOS still uses a plain `expo-notifications` scheduled notification (unchanged, untouched by any of this).
+- **Local Expo modules live under `app/modules/`**, auto-discovered by `expo-modules-autolinking` (default search path, confirmed via its source rather than assumed) — no manual Gradle wiring needed, but each one also needs a `"file:./modules/<name>"` entry in `app/package.json`'s dependencies for Metro/npm to resolve its JS side, and `npm install` re-run after adding one.
 
 ---
 

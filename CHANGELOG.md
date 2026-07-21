@@ -4,6 +4,17 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (5)
+
+### feat: rest-complete sound now plays via a native alarm module, not notification-channel sound
+The `enforceAudibility` fix didn't work either. Every attempt so far shared the same ceiling: a sound played through Android's `NotificationChannel` is subject to the notification-sound pipeline no matter which `AudioAttributes` are set on it, and on the test device (Samsung Galaxy S23, One UI) with ringer mode "Vibrate," that pipeline still suppressed it.
+
+Rather than continue tuning channel config, added `app/modules/rest-alarm` — a local native Android module that plays the sound directly, the same way real alarm-clock apps do: a native `AlarmManager` alarm fires a `BroadcastReceiver` (works even if the app process is dead), which starts a foreground service that plays `rest_timer_alert.mp3` via `MediaPlayer` on the Alarm audio stream with an explicit audio-focus request — no `NotificationChannel`, no `expo-notifications` scheduling, involved in the sound at all on Android. The service also posts a plain low-importance "Rest complete" banner notification, so the visual alert didn't regress.
+
+`services/restTimerNotifications.ts` now branches by platform: Android delegates to this module, iOS keeps its original plain `expo-notifications` scheduled notification (untouched — iOS was never the device any of this was debugged against). Removed the now-pointless Do Not Disturb access permission/settings row and all the versioned-channel machinery from the earlier attempts, since sound no longer goes through a channel on Android at all.
+
+This needs `npx expo prebuild --clean` (new local native module, new manifest entries for the foreground-service permissions) before the next build. Verified by reading real source at each design decision (`expo-modules-autolinking`'s local-module discovery path, `expo-modules-core`'s Kotlin module DSL, a real bundled module's `build.gradle`/manifest conventions, and this project's actual resolved `compileSdk`/`targetSdk` of 35) — not yet confirmed working on-device, since builds are run by the user.
+
 ## 2026-07-21 (4)
 
 ### fix: rest-complete sound still silenced in Vibrate mode after the Do Not Disturb fix

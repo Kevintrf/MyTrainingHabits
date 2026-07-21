@@ -26,8 +26,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.kevintrf.mytraininghabits",
       "permissions": [
-        "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.ACCESS_NOTIFICATION_POLICY"
+        "android.permission.SCHEDULE_EXACT_ALARM"
       ]
     },
     "plugins": [

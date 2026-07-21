@@ -87,15 +87,20 @@ db/settings.ts
 
 services/restTimerNotifications.ts
   scheduleRestCompleteNotification(seconds, soundEnabled)
-                                               Local notification, fires even backgrounded/
-                                               closed. Picks a sound or silent Android channel
-                                               based on soundEnabled. Returns null if
-                                               permission isn't granted.
-  cancelRestNotification(id)                  Cancel a pending one (no-op if already fired)
+                                               Android: hands off to the rest-alarm native
+                                               module. iOS: schedules a plain expo-notifications
+                                               notification. Returns a handle, or null if
+                                               notification permission isn't granted.
+  cancelRestNotification(handle)               Cancel a pending one (no-op if already fired)
   openExactAlarmSettings()                    Android only — deep-links to the OS "Alarms
                                                & reminders" toggle for this app (see below)
-  openNotificationPolicySettings()            Android only — deep-links to the OS "Do Not
-                                               Disturb access" toggle for this app (see below)
+
+modules/rest-alarm/  (local native module, Android only — see Rest Timer below)
+  scheduleRestAlarm(triggerAtMillis, soundEnabled)
+                                               Native AlarmManager alarm; fires even if the
+                                               app process is dead
+  cancelRestAlarm()                           Cancels the pending alarm and stops the service
+                                               if it's already running
 ```
 
 ## Exercise Data (free-exercise-db import)
@@ -123,25 +128,43 @@ scripts/import-free-exercise-db.py
 
 ## Rest Timer
 
-Started automatically whenever a set is checked off in WorkoutScreen (not when un-marking one). Two independent pieces, both driven from `AppContext`:
+Started automatically whenever a set is checked off in WorkoutScreen (not when un-marking one). Three independent pieces, all driven from `AppContext`:
 
 - **In-app countdown** — `RestTimerBanner` (mounted globally in `App.tsx`, above `RootNavigator`, so it's visible on every tab, not just while on WorkoutScreen). Tracks an epoch-ms `restTimerEndAt` rather than an accumulating counter, so it stays correct across the app being backgrounded/resumed — no drift, no need to persist/restore a running interval.
-- **Local notification** — `services/restTimerNotifications.ts` schedules a single `expo-notifications` local notification for when the rest period ends, so it still fires if the app is backgrounded or fully closed. **Known limitation:** Expo's notification API doesn't expose Android's native "chronometer" notification style, so there's no live-updating countdown *inside* the notification itself — only the in-app banner counts down; the notification is a one-shot "time's up" alert.
+- **Rest-complete alert, Android** — `modules/rest-alarm`, a local native module (see below), not `expo-notifications`.
+- **Rest-complete alert, iOS** — `services/restTimerNotifications.ts` schedules a plain `expo-notifications` local notification. Unchanged since it was first built; iOS was never the device any of the sound bugs below were reported or debugged against. **Known limitation:** Expo's notification API doesn't expose a live-updating countdown *inside* the notification, so (as on Android) it's a one-shot "time's up" alert, not a ticking display — the in-app banner is what counts down.
 
-`user_settings.rest_timer_enabled` (default 1/on) gates `AppContext.startRestTimer()` — it's a no-op when off, so `WorkoutScreen`'s call site doesn't need to know about the setting. `user_settings.rest_timer_seconds` (default 120) controls the duration; SettingsScreen edits it as separate minutes (1 digit, 0-9) + seconds (2 digits, 0-99) text inputs rather than presets, sanitized to digits-only and capped by `maxLength`, saved (debounced) only when the combined total is > 0 — a 0:00 duration is refused with an inline warning rather than silently falling back to something else.
+`user_settings.rest_timer_enabled` (default 1/on) gates `AppContext.startRestTimer()` — it's a no-op when off, so `WorkoutScreen`'s call site doesn't need to know about the setting. `user_settings.rest_timer_seconds` (default 120) controls the duration; SettingsScreen edits it as separate minutes (1 digit, 0-9) + seconds (2 digits, 0-99) text inputs rather than presets, sanitized to digits-only and capped by `maxLength`, saved (debounced) only when the combined total is > 0 — a 0:00 duration is refused with an inline warning rather than silently falling back to something else. `user_settings.rest_timer_sound_enabled` (default 1/on) controls whether the alert plays sound at all (Android: skips `MediaPlayer` and posts a silent banner; iOS: `content.sound: false`).
 
-**Notification sound:** `user_settings.rest_timer_sound_enabled` (default 1/on) controls whether the rest-complete notification plays `app/assets/sounds/rest_timer_alert.mp3`, registered via the `expo-notifications` config plugin's `sounds` array in `app.json`. **Non-obvious gotcha found by reading the Android native source** (`ExpoNotificationBuilder.kt`'s `applySoundsAndVibrations`): on Android 8+ (API 26+), a notification's *channel* — not its per-request `content.sound` — governs whether/what plays, and a channel's sound is fixed at creation time. So toggling sound on/off can't be done by varying `content.sound` per notification; instead `restTimerNotifications.ts` maintains two Android channels (`rest-timer-v4` with the custom sound, `rest-timer-v4-silent` with `sound: null`) and picks between them via `channelId` when scheduling, based on the setting. iOS doesn't have channels, so there `content.sound` is set directly (`SOUND_FILE` or `false`) — though iOS officially only supports aiff/wav/caf for custom notification sounds, so the bundled mp3 may fall back to the system default there; this app's primary target (the user's device) is Android, where it plays correctly.
+### `modules/rest-alarm` — why a native module was necessary
 
-**Channel ids are versioned, not reused.** Android permanently locks a channel's sound/importance/audio-attributes/`bypassDnd` at creation — the app can never update them later, only the user can via system Settings. Every earlier id (`rest-timer`, `rest-timer-silent`, `rest-timer-alarm`, `rest-timer-alarm-silent`, `rest-timer-v3`, `rest-timer-v3-silent`) is explicitly deleted on setup and never reused; any future change to channel-level config needs a new id too (current suffix: `v4`), or it silently won't take effect on devices that already have the old channel.
+The straightforward approach — an `expo-notifications` scheduled notification with a custom sound — went through several rounds of channel-config fixes (custom sound file, `AudioAttributes.usage = ALARM`, `bypassDnd`, `AudioAttributes.FLAG_AUDIBILITY_ENFORCED`) and **still didn't play on the test device (Samsung Galaxy S23, One UI) with its ringer mode set to "Vibrate."** Full history of that sequence, including exactly what each attempt fixed and didn't, is in `CHANGELOG.md`'s 2026-07-21 entries — worth reading before ever touching notification-channel sound config in this codebase again, so an already-ruled-out fix doesn't get re-attempted.
 
-**Three attempts were needed to survive vibrate/silent/Do Not Disturb, not one — documented in order since each was verified insufficient on a real device (Samsung Galaxy S23, One UI) before moving to the next:**
-1. *Which volume slider controls it* — the sound channel's `audioAttributes.usage` is `AndroidAudioUsage.ALARM` (not the default `NOTIFICATION`), the same stream real alarm-clock apps use, so once playback is allowed it's governed by Alarm volume, not Ring/Notification. **Confirmed insufficient alone:** the user's ringer mode was "Vibrate" (not Do Not Disturb), and standard Android says ringer mode shouldn't touch the Alarm stream at all — but the sound was still silent.
-2. *Whether it's allowed to play at all, if Do Not Disturb is engaged* — the channel sets `bypassDnd: true`, the officially-sanctioned way for a channel to be let through Do Not Disturb, requiring `android.permission.ACCESS_NOTIFICATION_POLICY` in `app.json` and the user granting "Do Not Disturb access" (a special app-access toggle, no runtime prompt, no JS API to check grant status — `openNotificationPolicySettings()` deep-links to it, surfaced as a SettingsScreen row). **Confirmed insufficient alone:** the user had already granted this, and their device wasn't even in Do Not Disturb — just ringer mode "Vibrate" — so this flag was never the relevant one for their report, though it's kept since it's still correct for genuine DND scenarios.
-3. *Force audibility regardless of stream/mute state* — added `audioAttributes.flags.enforceAudibility: true`, which maps to Android's `AudioAttributes.FLAG_AUDIBILITY_ENFORCED`, explicitly documented for "ensure this sound is heard no matter the current mute/volume state." Added after the first two didn't resolve the "Vibrate" case; not yet confirmed on-device as of this writing.
+The conclusion that sequence led to: a sound played via `NotificationChannel` is fundamentally still subject to Android's (and apparently this OEM's) notification-sound suppression, no matter which `AudioAttributes` are set on it. The only way around that ceiling is to stop asking the *notification system* to make the sound, and have the *app* make it directly — the same architecture real alarm-clock apps use:
 
-If none of these three fully solve it, the remaining option is no longer a channel-config tweak: a genuine native Android module (foreground service + `MediaPlayer` playing directly on `STREAM_ALARM` with an explicit audio-focus request, triggered by a native `AlarmManager`/`BroadcastReceiver` scheduled independently of `expo-notifications`' own posting pipeline) — the same pattern real alarm-clock apps use, and the same order of native-module work as the deferred chronometer-notification roadmap item. This would decouple the sound entirely from Android's notification-sound pipeline (which is what a NotificationChannel-based sound, even with every audio-attribute knob set, is still ultimately subject to) rather than trying to configure around its limits.
+```text
+AlarmManager (native, exact-alarm)
+  → RestAlarmReceiver (BroadcastReceiver)
+    → RestAlarmService (foreground service, started from the receiver — this is an
+                         explicitly-documented exemption to Android's background-start
+                         restrictions specifically for AlarmManager-triggered receivers)
+      → posts a low-importance "Rest complete" notification (just a visible banner)
+      → if soundEnabled: MediaPlayer, AudioAttributes.usage = ALARM, requests
+        AUDIOFOCUS_GAIN_TRANSIENT, plays app/assets/sounds/rest_timer_alert.mp3 directly
+        from Android's res/raw (the same file expo-notifications' `sounds` config-plugin
+        entry in app.json copies there — that plugin config is still needed for this reason,
+        even though expo-notifications no longer schedules the Android notification itself)
+```
 
-Both were discovered the hard way: layer 1 alone (shipped first) wasn't sufficient — the user's device still didn't play the sound in a "notification volume zero + silenced" state until `bypassDnd` + granted Do Not Disturb access were added. No native module needed for either — both are plain channel/manifest config.
+This is a genuinely different mechanism from a `NotificationChannel` sound: nothing here asks `NotificationManager` to play anything. The Alarm stream, audio-focus request, and lack of any notification-channel involvement together should behave the same way the OS's own Alarm app does — which is the thing this whole feature was trying to approximate in the first place.
+
+Implementation notes for anyone touching this module:
+- **Location and discovery:** `app/modules/rest-alarm` is a local Expo module (not published, not in `node_modules` except via the `"file:./modules/rest-alarm"` entry in `app/package.json`, which npm symlinks in). `expo-modules-autolinking` auto-discovers anything under `./modules` — confirmed by reading `autolinkingOptions.js`'s `nativeModulesDir` default, not assumed. No manual Gradle `include` needed; the generated `android/settings.gradle`'s `expoAutolinking.useExpoModules()` picks it up dynamically on every prebuild.
+- **`platforms: ["android"]` only** in `expo-module.config.json` — there's no iOS implementation. `modules/rest-alarm/index.ts` uses `requireOptionalNativeModule`, so importing it on iOS just returns functions that no-op, rather than throwing.
+- **Foreground service type:** `specialUse` (Android 14+ requires a declared type), not `mediaPlayback` — chosen because `specialUse` doesn't carry `mediaPlayback`'s expectations (e.g. an active `MediaSession`) that this one-shot alert doesn't fit, and needs no extra permission beyond `FOREGROUND_SERVICE_SPECIAL_USE` (declared in the module's own `AndroidManifest.xml`, merged in automatically — no `app.json` permissions-array entry needed for anything this module declares itself).
+- **Only one alarm is ever pending** — `scheduleRestAlarm`/`cancelRestAlarm` both target the same fixed `PendingIntent` request code, so scheduling a new one implicitly replaces any previous one. No id/handle tracking needed on the native side (the JS wrapper still returns a handle string for API-compatibility with the iOS path, which does need a real notification id).
+- **`openExactAlarmSettings()` still applies** — this module schedules its own `AlarmManager` alarm directly, so the same exact-alarm permission situation (see below) still governs its timing accuracy.
+- Verified via reading real source at each step (expo-modules-autolinking's search-path resolution, expo-modules-core's `Module`/`ModuleDefinition` Kotlin DSL, a real bundled module's `build.gradle`/`AndroidManifest.xml` for exact conventions, and the generated project's actual `compileSdk`/`targetSdk` — 35, confirmed from `ExpoRootProjectPlugin.kt`'s defaults, before relying on API-34 symbols) — **not yet verified on-device**, since builds/installs are run by the user, not this agent.
 
 **Native dependency:** `expo-notifications` requires the `ios`/`android` native projects to be regenerated (`npx expo prebuild --clean`) after being added or after `app.json`'s `sounds` array changes — a plain JS-only change wouldn't pick up the new native module, the Android permissions its config plugin adds, or a newly bundled sound asset (the plugin copies it into `android/app/src/main/res/raw` at prebuild time).
 

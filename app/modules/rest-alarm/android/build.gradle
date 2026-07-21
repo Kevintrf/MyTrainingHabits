@@ -1,0 +1,17 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.restalarm'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.restalarm"
+}
+
+dependencies {
+  // Same version expo-notifications already declares elsewhere in this project — implementation
+  // deps aren't visible across Gradle modules by default, so this is declared explicitly rather
+  // than assumed to leak in from another module's classpath.
+  implementation 'androidx.core:core:1.6.0'
+}

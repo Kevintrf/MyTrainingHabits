@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getSettings, updateSettings } from '../db/settings';
-import { openExactAlarmSettings, openNotificationPolicySettings } from '../services/restTimerNotifications';
+import { openExactAlarmSettings } from '../services/restTimerNotifications';
 
 function sanitizeMinutes(v: string): string {
   return v.replace(/[^0-9]/g, '').slice(0, 1);
@@ -147,22 +147,6 @@ export default function SettingsScreen() {
                     </View>
                     <Ionicons name="chevron-forward" size={18} color="#ccc" />
                   </TouchableOpacity>
-
-                  {soundEnabled && (
-                    <>
-                      <View style={styles.cardDivider} />
-                      <TouchableOpacity style={styles.settingsLinkRow} onPress={openNotificationPolicySettings}>
-                        <Ionicons name="volume-high-outline" size={20} color="#2D6A4F" />
-                        <View style={styles.settingsLinkText}>
-                          <Text style={styles.settingsLinkTitle}>Sound muted by silent mode?</Text>
-                          <Text style={styles.settingsLinkDesc}>
-                            Android needs "Do Not Disturb access" allowed for this app so the sound can play through silent/vibrate mode. Tap to open that setting.
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={18} color="#ccc" />
-                      </TouchableOpacity>
-                    </>
-                  )}
                 </>
               )}
             </>

@@ -1,0 +1,8 @@
+{
+  "name": "rest-alarm",
+  "version": "1.0.0",
+  "description": "Plays the rest-timer-complete sound directly on Android's Alarm audio stream via a foreground service, bypassing the notification-sound pipeline entirely (Android only).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}
