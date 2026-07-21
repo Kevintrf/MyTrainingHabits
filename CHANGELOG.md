@@ -4,6 +4,15 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (6)
+
+### fix: rest-alarm module failed to build — missing versionName, risky Kotlin overload
+First real build attempt (`npx expo run:android --variant release`) failed during Gradle configuration, before any Kotlin was compiled: `'android.defaultConfig.versionName' is not defined` for the new `rest-alarm` module. The React Native Gradle plugin requires every native module (local ones included) to declare `defaultConfig.versionName`; a real bundled module's `build.gradle` sets it and the new one didn't. Added a `defaultConfig` block.
+
+While fixing that, also found (by inspection, before it could surface as its own build failure) that `RestAlarmModule.kt`'s `cancelRestAlarm` function ended with `context.stopService(...)`, which returns `Boolean` in Kotlin — risking ambiguous overload resolution against expo-modules-core's `Function()` DSL, which has both a `() -> Unit` and a generic `() -> R` variant. Added an explicit trailing `Unit` so it unambiguously matches the former.
+
+Also confirmed from the real build log: this project's actual `compileSdk`/`targetSdk` is 36 (higher than the plugin-default 35 assumed when choosing which API-34 symbols were safe to reference) — comfortably sufficient, no change needed there, just corrected in `docs/architecture.md`. Not yet confirmed the module actually compiles and runs — this fixes the first failure encountered, not a guarantee there isn't a second one still ahead.
+
 ## 2026-07-21 (5)
 
 ### feat: rest-complete sound now plays via a native alarm module, not notification-channel sound

@@ -52,7 +52,11 @@ class RestAlarmModule : Module() {
       // (what PendingIntent matching uses) ignores extras, only action/data/component/class —
       // so this resolves to the same PendingIntent regardless of what was originally scheduled.
       alarmManager.cancel(restAlarmPendingIntent(true))
+      // Context.stopService() returns Boolean, not Unit — end on an explicit Unit so this
+      // lambda unambiguously matches the `() -> Unit` Function() overload rather than risking
+      // resolution against the generic `() -> R` one.
       context.stopService(Intent(context, RestAlarmService::class.java))
+      Unit
     }
   }
 
