@@ -8,18 +8,19 @@ import { Exercise, MuscleGroup } from '../services/api';
 import { ExercisesStackParamList } from '../navigation/RootNavigator';
 
 const MUSCLE_GROUPS: MuscleGroup[] = ['CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS', 'CORE', 'CARDIO', 'OTHER'];
+type Filter = MuscleGroup | 'CUSTOM';
 
 export default function ExercisesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ExercisesStackParamList>>();
   const [query, setQuery] = useState('');
-  const [muscleGroup, setMuscleGroup] = useState<MuscleGroup | null>(null);
+  const [filter, setFilter] = useState<Filter | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const data = await searchExercises(query, muscleGroup ?? undefined);
+    const data = await searchExercises(query, filter ?? undefined);
     setExercises(data);
-  }, [query, muscleGroup]);
+  }, [query, filter]);
 
   useEffect(() => { load().finally(() => setLoading(false)); }, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -40,14 +41,14 @@ export default function ExercisesScreen() {
         showsHorizontalScrollIndicator={false}
         style={styles.chipsRow}
         contentContainerStyle={styles.chipsContent}
-        data={[null, ...MUSCLE_GROUPS]}
+        data={[null, 'CUSTOM' as const, ...MUSCLE_GROUPS]}
         keyExtractor={(item) => item ?? 'ALL'}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.chip, muscleGroup === item && styles.chipActive]}
-            onPress={() => setMuscleGroup(item)}
+            style={[styles.chip, filter === item && styles.chipActive]}
+            onPress={() => setFilter(item)}
           >
-            <Text style={[styles.chipText, muscleGroup === item && styles.chipTextActive]} numberOfLines={1}>
+            <Text style={[styles.chipText, filter === item && styles.chipTextActive]} numberOfLines={1}>
               {item ?? 'ALL'}
             </Text>
           </TouchableOpacity>

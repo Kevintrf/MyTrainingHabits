@@ -35,15 +35,33 @@ function mapExercise(row: ExerciseRow): Exercise {
   };
 }
 
-export async function searchExercises(q: string, muscleGroup?: MuscleGroup): Promise<Exercise[]> {
+// `filter` is either a muscle group or the special value 'CUSTOM' (user-created exercises,
+// any muscle group) — the two are mutually exclusive, matching the ExercisesScreen chip row
+// where CUSTOM sits alongside the muscle groups, not as a second independent dimension.
+//
+// Results rank custom (source = 'USER') exercises first, then by how many sets have actually
+// been logged against each exercise (most-used first) — surfacing exercises the user created
+// or actually trains ahead of the untouched majority of the 873-exercise seed library. Plain
+// alphabetical is only the final tiebreaker, not the primary order.
+export async function searchExercises(q: string, filter?: MuscleGroup | 'CUSTOM'): Promise<Exercise[]> {
+  const isCustomFilter = filter === 'CUSTOM';
+  const muscleGroup = isCustomFilter ? null : (filter ?? null);
+
   const rows = await db.getAllAsync<ExerciseRow>(
-    `SELECT ${EXERCISE_COLUMNS}
-     FROM exercises
-     WHERE name LIKE ?
-       AND (? IS NULL OR muscle_group = ?)
-     ORDER BY name
+    `SELECT ${EXERCISE_COLUMNS.split(', ').map((c) => `e.${c}`).join(', ')}
+     FROM exercises e
+     LEFT JOIN (
+       SELECT exercise_id, COUNT(*) AS set_count
+       FROM cycle_sets
+       WHERE reps IS NOT NULL OR weight_kg IS NOT NULL
+       GROUP BY exercise_id
+     ) usage ON usage.exercise_id = e.id
+     WHERE e.name LIKE ?
+       AND (? IS NULL OR e.muscle_group = ?)
+       AND (? = 0 OR e.source = 'USER')
+     ORDER BY (e.source = 'USER') DESC, COALESCE(usage.set_count, 0) DESC, e.name
      LIMIT 50`,
-    [`%${q}%`, muscleGroup ?? null, muscleGroup ?? null],
+    [`%${q}%`, muscleGroup, muscleGroup, isCustomFilter ? 1 : 0],
   );
   return rows.map(mapExercise);
 }

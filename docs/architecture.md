@@ -18,7 +18,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 |---------------------------|--------------------------------------------------------------------------|
 | CycleScreen               | Main view — active cycle's workouts with done-checkboxes; "New Cycle" button |
 | WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the program's target reps / last-used weight as a grey placeholder, see below); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
-| ExercisesScreen           | Browse and search the exercise library                                    |
+| ExercisesScreen           | Browse and search the exercise library; muscle-group filter chips plus a CUSTOM chip (right after ALL) for user-created exercises only |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
 | ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in free-exercise-db library, not custom exercises); links to ExerciseHistoryScreen |
 | ExerciseHistoryScreen     | Every completed set ever logged for one exercise, grouped by day, most recent first (reachable from ExerciseDetailScreen or the history icon on WorkoutScreen) |
@@ -53,7 +53,10 @@ See [../database/schema.md](../database/schema.md) for the full schema.
 
 ```text
 db/exercises.ts
-  searchExercises(q)          Search exercises by name
+  searchExercises(q, filter)  Search exercises by name; filter is a MuscleGroup or 'CUSTOM'
+                               (user-created, any muscle group — mutually exclusive with a
+                               muscle-group filter). Ranks custom exercises first, then by
+                               logged-set count, name only as the final tiebreaker (see below)
   getExercise(id)             Get a single exercise
   createExercise(data)        Create a custom exercise
   updateExerciseNotes(id, notes)  Save an exercise's personal notes
@@ -139,6 +142,12 @@ A short free-text note (`program_exercises.notes`) on a single exercise's inclus
 - **WorkoutScreen** — same display/edit UX on each exercise card's header, long-press alongside the existing tap-to-expand (RN's touch system distinguishes short tap from long press on the same `TouchableOpacity` without conflict). Resolving *which* `program_exercises` row a cycle exercise came from reuses `getCycleWorkoutDetail`'s existing `program_exercises` join (originally added just for `ORDER BY pe.order_index`) — `pe.id`/`pe.notes` were simply added to the same `SELECT`. This can be `null` (hidden, no long-press wired up) if the program workout or this exercise's entry in it was deleted after the cycle was stamped out, since there's no longer a row to attach a note to.
 
 Kept deliberately minimal per how it was asked for: no note means no extra UI at all; a note is one line of small italic text, nothing else about either screen's layout changes.
+
+## Exercise Search Ranking & CUSTOM Filter
+
+`searchExercises`'s default order isn't alphabetical — it's `(source = 'USER') DESC, logged-set-count DESC, name`. Custom (user-created) exercises always outrank every seed-library exercise regardless of how much either has been used; among exercises with the same custom-ness, the ones with more logged sets (`cycle_sets` rows with non-null reps/weight, counted via a `LEFT JOIN` subquery) rank higher; name is only the final tiebreaker. The intent is surfacing exercises the user actually created or trains ahead of the untouched majority of the 873-exercise seed library, not literal alphabetical browsing.
+
+`filter: MuscleGroup | 'CUSTOM'` is a single mutually-exclusive selector, not two independent dimensions — `'CUSTOM'` means "user-created, any muscle group" and clears any muscle-group condition; ExercisesScreen's chip row reflects this by putting a CUSTOM chip in the same row as the muscle groups (right after ALL), not a separate filter control.
 
 ## Set Logging Pre-fill (WorkoutScreen)
 

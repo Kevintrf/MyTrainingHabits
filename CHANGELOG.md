@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (19)
+
+### feat: CUSTOM exercise filter, ranked search results
+Added a CUSTOM chip to ExercisesScreen's filter row, right after ALL — filters to user-created exercises only, any muscle group; mutually exclusive with the muscle-group chips (one selector, not two independent filters). `searchExercises` also no longer sorts alphabetically by default: results now rank custom exercises first, then by how many sets have actually been logged against each exercise, with name only as the final tiebreaker — surfacing exercises the user created or actually trains ahead of the untouched majority of the 873-exercise seed library. Verified via smoke test: CUSTOM filter excludes seed exercises even when heavily logged, and among same-source exercises the more-used one ranks first regardless of alphabetical order.
+
+---
+
 ## 2026-07-21 (18)
 
 ### feat: grey placeholder pre-fill for reps/weight, auto-commit on finish
