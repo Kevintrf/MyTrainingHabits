@@ -79,12 +79,14 @@ export default function CycleScreen() {
               style={styles.rowBody}
               onPress={() => navigation.navigate('Workout', { cycleWorkoutId: item.id, label: item.label })}
             >
-              <Text style={[styles.label, item.is_complete && styles.labelDone]}>{item.label}</Text>
-              {!!item.exercise_preview && (
-                <Text style={styles.preview} numberOfLines={1}>{item.exercise_preview}</Text>
-              )}
+              <View style={styles.rowBodyText}>
+                <Text style={[styles.label, item.is_complete && styles.labelDone]}>{item.label}</Text>
+                {!!item.exercise_preview && (
+                  <Text style={styles.preview} numberOfLines={1}>{item.exercise_preview}</Text>
+                )}
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#ccc" />
             </TouchableOpacity>
-            <Ionicons name="chevron-forward" size={18} color="#ccc" />
           </View>
         )}
       />
@@ -119,7 +121,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   checkbox: { marginRight: 12 },
-  rowBody: { flex: 1 },
+  rowBody: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  rowBodyText: { flex: 1 },
   label: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   labelDone: { color: '#999', textDecorationLine: 'line-through' },
   preview: { fontSize: 13, color: '#999', marginTop: 2 },

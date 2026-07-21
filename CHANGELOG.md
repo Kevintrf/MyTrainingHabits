@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (14)
+
+### fix: chevron on CycleScreen's workout rows wasn't tappable
+The chevron sat outside the row's navigation touchable (a separate sibling, not wrapped in anything), so tapping directly on it did nothing — only the label/preview text area navigated. Moved it inside the same touchable. Checked every other chevron-style row in the app (Exercises, Program, exercise history link, Settings' alarm-permission row) — all of them already wrap the full row including the chevron, so this was the one inconsistent spot, not a systemic pattern.
+
+---
+
 ## 2026-07-21 (13)
 
 ### fix: decouple clearing the rest-alarm notification from tapping it
