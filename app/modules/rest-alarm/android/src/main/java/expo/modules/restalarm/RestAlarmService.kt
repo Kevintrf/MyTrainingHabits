@@ -151,8 +151,11 @@ class RestAlarmService : Service() {
     }
     mediaPlayer = null
     abandonAudioFocus()
-    @Suppress("DEPRECATION")
-    stopForeground(true)
+    // DETACH (not REMOVE): stop being a foreground service but leave the "Rest complete"
+    // notification posted as a normal, dismissible notification — matching how the old
+    // expo-notifications-based alert behaved (visible until the user dismisses it, not
+    // vanishing the instant playback ends).
+    stopForeground(STOP_FOREGROUND_DETACH)
     stopSelf()
   }
 

@@ -4,6 +4,17 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (7)
+
+### fix: rest-alarm sound didn't play in foreground, and its notification vanished quickly
+First on-device confirmation of the native rest-alarm module: sound worked, but only while the app was backgrounded/closed, and the "Rest complete" notification disappeared within a few seconds regardless.
+
+Root cause of the foreground bug: `RestTimerBanner`'s countdown-reaches-zero handler called the exact same `cancelRestTimer()` as the "Skip" button. That was harmless with the old `expo-notifications` implementation (cancelling an already-fired notification is a no-op), but `rest-alarm`'s `cancelRestAlarm()` also calls `stopService()` — which, if the foreground service is already running, kills it mid-playback. Since the in-app countdown only actively ticks while the app is in the foreground, this raced with and killed the native alert at the exact moment it should have fired, every time the app was open. Split the natural-completion path into a new `dismissRestTimerBanner()` that only clears local UI state, leaving `cancelRestTimer()` for the explicit "Skip" action, which still needs to actually cancel/stop the alert.
+
+Root cause of the vanishing notification: the service's cleanup called `stopForeground(true)` (`STOP_FOREGROUND_REMOVE`), which deletes the notification the moment the service stops — right as the short alert sound finishes playing. Changed to `STOP_FOREGROUND_DETACH`, which stops the service but leaves the notification posted and dismissible, matching the old notification-based behavior.
+
+---
+
 ## 2026-07-21 (6)
 
 ### fix: rest-alarm module failed to build — missing versionName, risky Kotlin overload

@@ -16,7 +16,14 @@ interface AppContextType {
   // state) so it stays correct across the app being backgrounded and resumed.
   restTimerEndAt: number | null;
   startRestTimer: () => Promise<void>;
+  // Explicit early stop (the banner's "Skip" button) — also tells the platform layer to
+  // cancel/stop the scheduled alert itself.
   cancelRestTimer: () => void;
+  // The countdown reaching zero on its own — the scheduled alert is expected to fire (or, on
+  // Android, may already be actively playing) right around now; this only clears the in-app
+  // banner's local state and must NOT call into cancelRestTimer's platform-cancel path. See
+  // cancelRestTimer's own comment for why that distinction matters.
+  dismissRestTimerBanner: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -36,14 +43,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setActiveCycle(cycle);
   }, []);
 
-  // Also used when the countdown naturally reaches zero — cancelling an already-fired
-  // notification is a harmless no-op, so one function covers "skip early" and "finished".
+  // Explicit early stop only (the "Skip" button) — NOT for when the countdown naturally
+  // finishes. On Android, cancelling isn't a harmless no-op on an already-fired alert the way
+  // the old expo-notifications-based version was: it actively stops a live foreground service
+  // that may be mid-playback (see modules/rest-alarm). Calling this exactly when the timer
+  // would have ended anyway raced with — and killed — the native alert, which is why sound
+  // never played while the app was open. Natural completion uses dismissRestTimerBanner
+  // instead, which never touches the platform layer.
   const cancelRestTimer = useCallback(() => {
     setRestTimerEndAt(null);
     if (notificationIdRef.current) {
       cancelRestNotification(notificationIdRef.current);
       notificationIdRef.current = null;
     }
+  }, []);
+
+  const dismissRestTimerBanner = useCallback(() => {
+    setRestTimerEndAt(null);
+    notificationIdRef.current = null;
   }, []);
 
   const startRestTimer = useCallback(async () => {
@@ -72,6 +89,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       restTimerEndAt,
       startRestTimer,
       cancelRestTimer,
+      dismissRestTimerBanner,
     }}>
       {children}
     </AppContext.Provider>

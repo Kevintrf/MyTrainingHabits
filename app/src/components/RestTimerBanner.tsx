@@ -15,7 +15,7 @@ function formatRemaining(ms: number): string {
 // epoch-ms timestamp rather than an accumulating counter, so the countdown stays correct
 // even if the app was backgrounded and the interval below missed ticks while suspended.
 export default function RestTimerBanner() {
-  const { restTimerEndAt, cancelRestTimer } = useApp();
+  const { restTimerEndAt, cancelRestTimer, dismissRestTimerBanner } = useApp();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -24,11 +24,14 @@ export default function RestTimerBanner() {
     return () => clearInterval(interval);
   }, [restTimerEndAt]);
 
+  // Natural completion — just hide the banner. Deliberately not cancelRestTimer: the
+  // scheduled alert is expected to fire (or already be playing) right around now, and
+  // cancelling it here would race with and kill it. See AppContext's cancelRestTimer comment.
   useEffect(() => {
     if (restTimerEndAt && now >= restTimerEndAt) {
-      cancelRestTimer();
+      dismissRestTimerBanner();
     }
-  }, [now, restTimerEndAt, cancelRestTimer]);
+  }, [now, restTimerEndAt, dismissRestTimerBanner]);
 
   if (!restTimerEndAt) return null;
 
