@@ -30,6 +30,9 @@ export interface ProgramExercise {
   default_sets: number;
   default_reps: number | null;
   default_weight_kg: number | null;
+  // Short free-text note on this exercise's inclusion in this specific program workout (e.g.
+  // "start light"), separate from the exercise's own general notes (Exercise.notes).
+  notes: string | null;
 }
 
 export interface ProgramWorkout {

@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (16)
+
+### feat: per-program-exercise notes in EditProgramWorkoutScreen
+Long-pressing an exercise in a program workout now opens a small inline text field for a short note on that exercise's inclusion in this specific workout (e.g. "start light") — distinct from the exercise's own general notes on ExerciseDetailScreen. Added `program_exercises.notes` (nullable) with a migration for existing installs. Kept deliberately minimal: no note shows nothing extra; a note shows as a single line of small italic text under the exercise name, nothing else changes about the row's layout. Verified the migration and CRUD round-trip (set, clear, survives unrelated field updates) via smoke test.
+
+---
+
 ## 2026-07-21 (15)
 
 ### feat: rest-alarm sound skips playback when Media volume is zero

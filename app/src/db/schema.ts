@@ -55,7 +55,8 @@ const CREATE_TABLES = `
     order_index          INTEGER NOT NULL DEFAULT 0,
     default_sets         INTEGER NOT NULL DEFAULT 3,
     default_reps         INTEGER,
-    default_weight_kg    REAL
+    default_weight_kg    REAL,
+    notes                TEXT
   );
 
   CREATE TABLE IF NOT EXISTS cycles (
@@ -282,6 +283,15 @@ export function initSchema(): void {
     // user_settings.rest_timer_sound_enabled added after rest_timer_enabled.
     try {
       db.execSync('ALTER TABLE user_settings ADD COLUMN rest_timer_sound_enabled INTEGER NOT NULL DEFAULT 1;');
+    } catch {
+      // already exists
+    }
+
+    // program_exercises.notes added after the initial table shipped — a short free-text note
+    // on an exercise's inclusion in a specific program workout (e.g. "start light"), separate
+    // from exercises.notes (the exercise's own general notes).
+    try {
+      db.execSync('ALTER TABLE program_exercises ADD COLUMN notes TEXT;');
     } catch {
       // already exists
     }

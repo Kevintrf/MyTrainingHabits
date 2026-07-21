@@ -38,6 +38,8 @@ export default function EditProgramWorkoutScreen() {
   const [loading, setLoading] = useState(!!route.params.workoutId);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Exercise[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const labelDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -98,6 +100,17 @@ export default function EditProgramWorkoutScreen() {
     updateProgramExercise(pe.id, { default_reps: isNaN(n) ? null : n });
   }
 
+  function handleStartEditNote(pe: ProgramExercise) {
+    setEditingNoteId(pe.id);
+    setNoteDraft(pe.notes ?? '');
+  }
+
+  async function handleCommitNote(programExerciseId: number) {
+    setEditingNoteId(null);
+    await updateProgramExercise(programExerciseId, { notes: noteDraft.trim() || null });
+    if (workoutId) await load(workoutId);
+  }
+
   async function handleMove(index: number, dir: -1 | 1) {
     if (!workout || !workoutId) return;
     const ids = workout.exercises.map((e) => e.id);
@@ -153,11 +166,33 @@ export default function EditProgramWorkoutScreen() {
             {workout.exercises.map((pe, i) => (
               <View key={pe.id} style={styles.exerciseRow}>
                 <View style={styles.exerciseRowTop}>
-                  <Text style={styles.exerciseName}>{pe.exercise_name}</Text>
+                  <TouchableOpacity
+                    style={styles.exerciseNameBtn}
+                    onLongPress={() => handleStartEditNote(pe)}
+                    delayLongPress={350}
+                  >
+                    <Text style={styles.exerciseName}>{pe.exercise_name}</Text>
+                    {!!pe.notes && editingNoteId !== pe.id && (
+                      <Text style={styles.exerciseNote} numberOfLines={1}>{pe.notes}</Text>
+                    )}
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleRemoveExercise(pe.id)}>
                     <Ionicons name="close-circle" size={20} color="#e74c3c" />
                   </TouchableOpacity>
                 </View>
+                {editingNoteId === pe.id && (
+                  <TextInput
+                    style={styles.noteInput}
+                    value={noteDraft}
+                    onChangeText={setNoteDraft}
+                    onBlur={() => handleCommitNote(pe.id)}
+                    placeholder="Add a note for this exercise..."
+                    placeholderTextColor="#bbb"
+                    autoFocus
+                    returnKeyType="done"
+                    autoComplete="off" textContentType="none" importantForAutofill="no"
+                  />
+                )}
                 <View style={styles.exerciseRowBottom}>
                   <View style={styles.moveBtns}>
                     <TouchableOpacity onPress={() => handleMove(i, -1)} disabled={i === 0}>
@@ -245,7 +280,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   exerciseRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  exerciseNameBtn: { flex: 1, marginRight: 8 },
   exerciseName: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  exerciseNote: { fontSize: 12, color: '#999', fontStyle: 'italic', marginTop: 2 },
+  noteInput: {
+    backgroundColor: '#F9F9F9',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    color: '#1A1A1A',
+    marginTop: 6,
+  },
   exerciseRowBottom: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   moveBtns: { flexDirection: 'row', gap: 4, marginRight: 8 },
   smallLabel: { fontSize: 12, color: '#999' },

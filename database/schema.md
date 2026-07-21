@@ -41,6 +41,7 @@ erDiagram
         int default_sets
         int default_reps
         float default_weight_kg
+        string notes
     }
 
     cycles {
@@ -159,6 +160,7 @@ The exercises that make up a program workout, with default targets.
 | default_sets      | int   | suggested number of sets                    |
 | default_reps      | int   | nullable, suggested reps per set            |
 | default_weight_kg | float | nullable, last-used weight (auto-updated)   |
+| notes             | string | nullable, short free-text note on this exercise's inclusion in this specific program workout (e.g. "start light") — distinct from `exercises.notes`, which is the exercise's own general notes |
 
 ---
 

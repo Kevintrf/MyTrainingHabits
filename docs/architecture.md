@@ -23,7 +23,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in free-exercise-db library, not custom exercises); links to ExerciseHistoryScreen |
 | ExerciseHistoryScreen     | Every completed set ever logged for one exercise, grouped by day, most recent first (reachable from ExerciseDetailScreen or the history icon on WorkoutScreen) |
 | ProgramScreen             | The repeating program — ordered list of workouts, tap to edit             |
-| EditProgramWorkoutScreen  | Edit a program workout's label and its exercises/default targets          |
+| EditProgramWorkoutScreen  | Edit a program workout's label and its exercises/default targets; long-press an exercise to add/edit a short note on its inclusion in this workout |
 | SettingsScreen            | Rest timer on/off toggle (default on), duration (minutes + seconds inputs), and play-sound toggle (default on) |
 
 ### State Management
