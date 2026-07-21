@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (11)
+
+### fix: exercise card expand/collapse tap target too small on WorkoutScreen
+Only the exercise name/set-count text and the small chevron icon toggled the set/reps view — easy to miss and tap next to. The whole card header is now the tap target (minus the guide/history icon buttons, which still navigate on their own), by making the header itself the touchable rather than a narrow inner region of it.
+
+---
+
 ## 2026-07-21 (10)
 
 ### fix: rest-alarm notification didn't reliably clear on tap

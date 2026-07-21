@@ -111,15 +111,13 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
 
   return (
     <View style={[styles.card, allDone && styles.cardDone]}>
-      <View style={styles.cardHeader}>
-        <TouchableOpacity style={styles.cardHeaderMain} onPress={() => setExpanded((v) => !v)}>
-          <View style={styles.cardHeaderText}>
-            <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
-            <Text style={styles.exerciseMeta}>
-              {exercise.sets.length} sets{exerciseId === null ? ' · removed from library' : ''}
-            </Text>
-          </View>
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.cardHeader} activeOpacity={0.6} onPress={() => setExpanded((v) => !v)}>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
+          <Text style={styles.exerciseMeta}>
+            {exercise.sets.length} sets{exerciseId === null ? ' · removed from library' : ''}
+          </Text>
+        </View>
 
         {exerciseId !== null && (
           <>
@@ -139,10 +137,8 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
         )}
 
         {allDone && <Ionicons name="checkmark-circle" size={20} color="#2D6A4F" />}
-        <TouchableOpacity onPress={() => setExpanded((v) => !v)}>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#999" />
-        </TouchableOpacity>
-      </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#999" />
+      </TouchableOpacity>
 
       {expanded && (
         <View style={styles.cardBody}>
@@ -243,7 +239,6 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
   },
-  cardHeaderMain: { flex: 1 },
   cardHeaderText: { flex: 1 },
   exerciseName: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   exerciseMeta: { fontSize: 12, color: '#999', marginTop: 2 },
