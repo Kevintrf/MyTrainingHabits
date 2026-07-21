@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (15)
+
+### feat: rest-alarm sound skips playback when Media volume is zero
+The alert intentionally still plays on the Alarm audio stream, bypassing ringer mode/notification volume/Do Not Disturb — that's the point of the whole native module. But Media volume specifically is now checked before playing (`AudioManager.getStreamVolume(STREAM_MUSIC) == 0` skips `playSound()`) — turning that slider all the way down is a deliberate, explicit user action worth honoring on its own, distinct from the system-level states the rest of this feature is built to survive. The notification banner and vibration are unaffected; only the sound itself is gated by this.
+
+---
+
 ## 2026-07-21 (14)
 
 ### fix: chevron on CycleScreen's workout rows wasn't tappable

@@ -59,7 +59,7 @@ class RestAlarmService : Service() {
       return START_NOT_STICKY
     }
 
-    if (soundEnabled) {
+    if (soundEnabled && !isMediaVolumeZero()) {
       playSound()
       // Safety net: MediaPlayer's onCompletion/onError normally stop the service already:
       // this just guarantees the foreground service (and its wake-equivalent state) can't
@@ -70,6 +70,17 @@ class RestAlarmService : Service() {
     }
 
     return START_NOT_STICKY
+  }
+
+  // The alert plays on the Alarm stream (see playSound()), deliberately independent of ringer
+  // mode/vibrate/Do Not Disturb — that took several rounds to get right and is still the
+  // point. Media volume is different: turning it all the way down is an explicit, separate
+  // user action, not a system-level mode change, and the user asked for that specific signal
+  // to be honored — if Media volume is zero, skip playback (the notification banner and
+  // vibration still happen either way; only the sound itself is gated by this).
+  private fun isMediaVolumeZero(): Boolean {
+    val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    return manager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0
   }
 
   private fun buildNotification(): Notification {
