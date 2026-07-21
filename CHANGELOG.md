@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-21 (9)
+
+### feat: rest-alarm notification tap resumes the app, no stacking, quieter still
+Tapping the "Rest complete" notification now brings the app back to whatever it was showing (e.g. the workout being logged) via a content intent that resumes the existing task rather than cold-launching a fresh one — only reliable while the app process is still alive, which covers the typical rest-length backgrounding. Also explicitly cancels any previous rest-complete notification before posting a new one, so consecutive rest timers don't stack up multiple entries. Lowered playback volume again, 50% → 25%.
+
+---
+
 ## 2026-07-21 (8)
 
 ### fix: rest-alarm notification wasn't popping up or vibrating; sound too loud

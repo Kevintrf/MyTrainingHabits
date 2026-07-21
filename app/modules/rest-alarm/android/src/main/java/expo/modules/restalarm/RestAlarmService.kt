@@ -15,8 +15,10 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.app.PendingIntent
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 // This is the piece that actually solves what notification-channel-based sound couldn't:
 // playing the alert directly through MediaPlayer on the Alarm audio stream, entirely outside
@@ -36,6 +38,12 @@ class RestAlarmService : Service() {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     val soundEnabled = intent?.getBooleanExtra(RestAlarmReceiver.EXTRA_SOUND_ENABLED, true) ?: true
+
+    // Explicitly clear any previous rest-complete notification before posting a new one.
+    // Reusing the same NOTIFICATION_ID below should already replace-in-place rather than
+    // stack, but this removes any ambiguity for the case where the previous one was already
+    // detached from its (now-stopped) foreground service — belt and braces, cheap to do.
+    NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
 
     try {
       val notification = buildNotification()
@@ -95,7 +103,25 @@ class RestAlarmService : Service() {
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setVibrate(VIBRATE_PATTERN)
       .setAutoCancel(true)
+      .setContentIntent(buildContentIntent())
       .build()
+  }
+
+  // Tapping the notification brings the app back to whatever it was already showing (the
+  // current workout, if that's where the user left it) rather than cold-launching a fresh
+  // instance — REORDER_TO_FRONT resumes the existing task instead of restarting it. Falls
+  // back to no content intent (tap just dismisses, same as before) if the OS can't resolve a
+  // launch intent for this package, which shouldn't happen in practice but costs nothing to
+  // guard against.
+  private fun buildContentIntent(): PendingIntent? {
+    val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+    launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+    return PendingIntent.getActivity(
+      this,
+      CONTENT_REQUEST_CODE,
+      launchIntent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
   }
 
   // applicationInfo.icon should always be valid (Expo's prebuild always sets android:icon from
@@ -190,8 +216,9 @@ class RestAlarmService : Service() {
     private const val OLD_CHANNEL_ID = "rest-alarm-service"
     private const val CHANNEL_ID = "rest-alarm-service-v2"
     private const val NOTIFICATION_ID = 4272
+    private const val CONTENT_REQUEST_CODE = 4273
     private const val MAX_PLAYBACK_MS = 15_000L
-    private const val PLAYBACK_VOLUME = 0.5f
+    private const val PLAYBACK_VOLUME = 0.25f
     private val VIBRATE_PATTERN = longArrayOf(0, 400, 200, 400)
   }
 }
