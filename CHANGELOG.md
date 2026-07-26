@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-07-26 (20)
+
+### fix: rest-alarm sound no longer forced through the speaker with headphones connected
+The Alarm audio stream is special-cased by Android to always play through the speaker in addition to any connected headset/Bluetooth device, so an overnight alarm still wakes you if your earbuds fell out — fine for a wake-up alarm, wrong for a rest timer. `RestAlarmService` now checks for a connected wired headset/headphones, Bluetooth (A2DP/SCO), USB headset, or hearing aid via `AudioManager.getDevices()`, and pins `MediaPlayer` to that device with `setPreferredDevice()` when one is found, overriding the forced dual-routing. Falls back to the speaker exactly as before when nothing is connected. Android-only; iOS's notification-based sound already follows normal output routing.
+
+---
+
 ## 2026-07-21 (19)
 
 ### feat: CUSTOM exercise filter, ranked search results

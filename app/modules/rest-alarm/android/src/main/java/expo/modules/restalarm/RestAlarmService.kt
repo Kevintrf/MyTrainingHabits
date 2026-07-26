@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -174,12 +175,40 @@ class RestAlarmService : Service() {
         isLooping = false
         setOnCompletionListener { stopPlaybackAndSelf() }
         setOnErrorListener { _, _, _ -> stopPlaybackAndSelf(); true }
+        // The Alarm stream is special-cased by Android to always force playback through the
+        // speaker in addition to any connected headset/Bluetooth device (so an overnight alarm
+        // still wakes you if your earbuds fell out) — fine for a wake-up alarm, not what's
+        // wanted for a rest timer. Pinning to the connected device with setPreferredDevice()
+        // overrides that forced-speaker routing when headphones/Bluetooth are attached.
+        findConnectedHeadsetDevice()?.let { setPreferredDevice(it) }
         prepare()
         start()
       }
     } catch (e: Exception) {
       stopPlaybackAndSelf()
     }
+  }
+
+  private fun findConnectedHeadsetDevice(): AudioDeviceInfo? {
+    val manager = audioManager ?: return null
+    return manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+      .firstOrNull { it.type in headsetDeviceTypes() }
+  }
+
+  // Built at call time (rather than as a top-level constant) because TYPE_USB_HEADSET (API 26)
+  // and TYPE_HEARING_AID (API 28) don't exist as fields on older framework versions — resolving
+  // them unconditionally at class-init on a pre-26/28 device risks NoSuchFieldError, which is an
+  // Error, not an Exception, so it wouldn't be caught by playSound()'s try/catch.
+  private fun headsetDeviceTypes(): Set<Int> {
+    val types = mutableSetOf(
+      AudioDeviceInfo.TYPE_WIRED_HEADSET,
+      AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+      AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+      AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+    )
+    if (Build.VERSION.SDK_INT >= 26) types.add(AudioDeviceInfo.TYPE_USB_HEADSET)
+    if (Build.VERSION.SDK_INT >= 28) types.add(AudioDeviceInfo.TYPE_HEARING_AID)
+    return types
   }
 
   private fun requestAudioFocus(attributes: AudioAttributes) {
