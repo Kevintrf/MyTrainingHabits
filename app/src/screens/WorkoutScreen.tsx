@@ -15,7 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { CycleStackParamList } from '../navigation/RootNavigator';
-import { getCycleWorkoutDetail, markWorkoutComplete } from '../db/cycles';
+import { getCycleWorkoutDetail } from '../db/cycles';
 import { addSet, getLastSetsForExercise, markSetComplete, updateSet } from '../db/sets';
 import { updateProgramExercise } from '../db/program';
 import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise } from '../services/api';
@@ -241,11 +241,6 @@ export default function WorkoutScreen() {
     const map: Record<string, CycleSet[]> = {};
     d.exercises.forEach((e, i) => { map[exerciseKey(e)] = entries[i]; });
     setLastSets(map);
-
-    const allComplete = d.exercises.length > 0 && d.exercises.every((e) => e.sets.every((s) => s.is_complete));
-    if (allComplete !== d.is_complete) {
-      await markWorkoutComplete(cycleWorkoutId, allComplete);
-    }
 
     return d;
   }, [cycleWorkoutId]);

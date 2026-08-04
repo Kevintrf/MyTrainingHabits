@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (21)
+
+### fix: finished workouts no longer silently un-marked as complete
+A workout's completion flag is meant to be independent of its individual sets' checkboxes (you can mark a workout done via the Cycle tab's checkbox without every set literally checked off). But WorkoutScreen's `load()` was silently recomputing "all sets complete" on every mount and edit — including unrelated ones like committing an exercise note — and overwriting `cycle_workouts.is_complete` whenever it disagreed with the manual flag. Simply reopening an already-finished workout (for any reason) would flip it back to incomplete the moment the screen loaded, and the change wouldn't show up in the Cycle tab until something else (e.g. editing a note on a different workout) happened to trigger a cycle refresh — which is why it looked like the unrelated note edit caused it. Removed the auto-recompute entirely; `is_complete` now only changes via the explicit checkbox, as it did before this regression.
+
+---
+
 ## 2026-07-26 (20)
 
 ### fix: rest-alarm sound no longer forced through the speaker with headphones connected
