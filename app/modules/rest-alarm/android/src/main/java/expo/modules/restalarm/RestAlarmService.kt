@@ -60,7 +60,16 @@ class RestAlarmService : Service() {
       return START_NOT_STICKY
     }
 
-    if (soundEnabled && !isMediaVolumeZero()) {
+    audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    // Media volume is read per active output route, and a headset that's connected but has
+    // never had an actual media session play through it commonly reads as 0 on that route —
+    // either an OS hearing-safety reset on connect, or the level simply never having been
+    // established — regardless of what the user actually wants to hear. That's indistinguishable
+    // from a genuine "user muted media" from this API alone, so the zero-skip below only applies
+    // when we're about to fall back to the speaker; once routing to a real headset device (see
+    // playSound()'s setPreferredDevice), always play — that's the entire point of routing to it.
+    val hasHeadset = findConnectedHeadsetDevice() != null
+    if (soundEnabled && (hasHeadset || !isMediaVolumeZero())) {
       playSound()
       // Safety net: MediaPlayer's onCompletion/onError normally stop the service already:
       // this just guarantees the foreground service (and its wake-equivalent state) can't
@@ -78,9 +87,10 @@ class RestAlarmService : Service() {
   // point. Media volume is different: turning it all the way down is an explicit, separate
   // user action, not a system-level mode change, and the user asked for that specific signal
   // to be honored — if Media volume is zero, skip playback (the notification banner and
-  // vibration still happen either way; only the sound itself is gated by this).
+  // vibration still happen either way; only the sound itself is gated by this). Only consulted
+  // for the speaker-fallback case — see the hasHeadset check at the call site.
   private fun isMediaVolumeZero(): Boolean {
-    val manager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    val manager = audioManager ?: return false
     return manager.getStreamVolume(AudioManager.STREAM_MUSIC) == 0
   }
 
@@ -161,7 +171,6 @@ class RestAlarmService : Service() {
       .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
       .build()
 
-    audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
     requestAudioFocus(attributes)
 
     try {

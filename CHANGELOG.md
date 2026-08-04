@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (22)
+
+### fix: rest-alarm sound silent through headphones with no other audio active
+Media volume is tracked per active output route, and a headset that's connected but has never had a real media session play through it commonly reads as 0 on that route — either an OS hearing-safety reset on connect, or the level just never being established — regardless of what the user actually wants to hear. `RestAlarmService`'s "skip if Media volume is zero" check (added to respect an explicit mute) couldn't tell that apart from a genuinely muted headset, so the alert silently skipped playback entirely whenever nothing else had recently played audio through the headphones — until something like a music app raised that route's volume for it. The zero-skip now only applies when falling back to the speaker; once a connected headset is detected (same check the previous session's routing fix uses), the alert always plays, matching the actual intent of routing to it in the first place.
+
+---
+
 ## 2026-08-04 (21)
 
 ### fix: finished workouts no longer silently un-marked as complete
