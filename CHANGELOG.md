@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (23)
+
+### feat: new app icon/logo
+Replaced the default Expo placeholder (identical file reused across all five icon slots) with a blue dumbbell logo. `icon.png`/`splash-icon.png` use the full-bleed 1024x1024 artwork directly. The Android adaptive-icon foreground is scaled to ~68% and centered on a transparent canvas — Android crops that layer to a circle/squircle/rounded-square depending on the launcher, guaranteeing only the inner ~66% is always visible, and the un-padded original would have clipped the corner weight plates. Added a matching solid-navy `android-icon-background.png` and a derived white-silhouette `android-icon-monochrome.png` for Android 13+ themed icons. Splash screen and adaptive-icon backdrop colors in `app.json` updated to the logo's own navy (`#000A30`) so the padding blends seamlessly instead of showing the old white/light-blue defaults.
+
+---
+
 ## 2026-08-04 (22)
 
 ### fix: rest-alarm sound silent through headphones with no other audio active
