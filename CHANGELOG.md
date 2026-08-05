@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (26)
+
+### fix: renamed 24 seed exercises with outdated/obscure names
+Renamed 13 "-SMR" entries to their modern "Foam Rolling" equivalents (e.g. `Hamstring-SMR` -> `Hamstring Foam Rolling`, `Iliotibial Tract-SMR` -> `IT Band Foam Rolling`) and 11 one-off outdated/obscure names to their current common equivalent (e.g. `Air Bike` -> `Bicycle Crunch`, `Ab Roller` -> `Ab Wheel Rollout`, `Butt Lift (Bridge)` -> `Glute Bridge`), following a research pass verifying each is the exact same exercise, not just a similar variation. "Suspended X" -> "TRX X" renames were considered but deliberately left unchanged. `scripts/import-free-exercise-db.py` now applies a `NAME_OVERRIDES` map (keyed by the stable slug, not name) so re-running the import keeps these renames instead of reverting to the raw upstream names. Since `seedExercises()`'s insert loop only ever runs once per install (skipped once the full row count is already seeded), regenerating the seed data alone wouldn't reach an install that's already seeded — added `renameSeedExercises()` to `schema.ts`, applying the same renames directly by `source_slug` so existing installs pick them up on next launch too.
+
+---
+
 ## 2026-08-04 (25)
 
 ### feat: edit, rename, and delete custom exercises

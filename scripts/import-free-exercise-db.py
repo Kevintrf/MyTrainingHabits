@@ -34,6 +34,39 @@ DATA_OUT = APP_DIR / "src" / "db" / "seedExercisesData.ts"
 IMAGES_OUT_DIR = APP_DIR / "assets" / "exercises"
 MANIFEST_OUT = APP_DIR / "src" / "assets" / "exerciseImages.ts"
 
+# Renames applied on top of the raw free-exercise-db name for entries whose upstream name is
+# outdated/obscure jargon (old "-SMR" self-myofascial-release naming, old bodybuilding-forum
+# terms, etc.) with a name that's clearly more common/searchable today, verified against
+# mainstream fitness sources. Keyed by slug (stable) rather than name, since name is exactly
+# what's being overridden — re-running this script keeps these renames rather than reverting
+# to the upstream name.
+NAME_OVERRIDES = {
+    "Adductor": "Adductor Foam Rolling",
+    "Anterior_Tibialis-SMR": "Anterior Tibialis Foam Rolling",
+    "Brachialis-SMR": "Brachialis Foam Rolling",
+    "Calves-SMR": "Calves Foam Rolling",
+    "Foot-SMR": "Foot Foam Rolling",
+    "Hamstring-SMR": "Hamstring Foam Rolling",
+    "Iliotibial_Tract-SMR": "IT Band Foam Rolling",
+    "Latissimus_Dorsi-SMR": "Lat Foam Rolling",
+    "Lower_Back-SMR": "Lower Back Foam Rolling",
+    "Neck-SMR": "Neck Foam Rolling",
+    "Peroneals-SMR": "Peroneals Foam Rolling",
+    "Piriformis-SMR": "Piriformis Foam Rolling",
+    "Quadriceps-SMR": "Quad Foam Rolling",
+    "Rhomboids-SMR": "Rhomboids Foam Rolling",
+    "Air_Bike": "Bicycle Crunch",
+    "Alternate_Heel_Touchers": "Heel Touches",
+    "Ab_Roller": "Ab Wheel Rollout",
+    "Ankle_On_The_Knee": "Figure 4 Stretch",
+    "Butt_Lift_Bridge": "Glute Bridge",
+    "Butterfly": "Pec Deck Fly",
+    "Ball_Leg_Curl": "Stability Ball Leg Curl",
+    "Physioball_Hip_Bridge": "Stability Ball Hip Bridge",
+    "Body-Up": "Plank Up-Down",
+    "Body_Tricep_Press": "Bodyweight Tricep Extension",
+}
+
 # free-exercise-db's primaryMuscles vocabulary -> this app's MuscleGroup enum
 MUSCLE_MAP = {
     "abdominals": "CORE",
@@ -98,7 +131,7 @@ def main():
 
     for ex in exercises:
         slug = ex["id"]
-        name = ex["name"]
+        name = NAME_OVERRIDES.get(slug, ex["name"])
         muscle_group = map_muscle_group(ex.get("primaryMuscles") or [])
         ex_type = map_type(ex.get("category"), ex.get("equipment"))
         equipment = ex.get("equipment")

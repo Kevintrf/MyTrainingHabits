@@ -138,6 +138,52 @@ function seedExercises(): void {
   }
 }
 
+// Some seed exercises' upstream free-exercise-db names are outdated/obscure jargon with a
+// clearly more common name today (e.g. "-SMR" self-myofascial-release naming -> "Foam
+// Rolling"). seedExercises()'s insert loop only ever runs once (skipped once an install
+// already has the full row count), so on an install that's already seeded, changing
+// SEED_EXERCISES_FULL alone would never reach existing rows — this applies the same renames
+// directly by source_slug (stable, unlike name) so already-seeded installs pick them up too.
+// A fresh install seeds the new names directly from SEED_EXERCISES_FULL, making these a no-op.
+const SEED_NAME_RENAMES: [slug: string, name: string][] = [
+  ['Adductor', 'Adductor Foam Rolling'],
+  ['Anterior_Tibialis-SMR', 'Anterior Tibialis Foam Rolling'],
+  ['Brachialis-SMR', 'Brachialis Foam Rolling'],
+  ['Calves-SMR', 'Calves Foam Rolling'],
+  ['Foot-SMR', 'Foot Foam Rolling'],
+  ['Hamstring-SMR', 'Hamstring Foam Rolling'],
+  ['Iliotibial_Tract-SMR', 'IT Band Foam Rolling'],
+  ['Latissimus_Dorsi-SMR', 'Lat Foam Rolling'],
+  ['Lower_Back-SMR', 'Lower Back Foam Rolling'],
+  ['Neck-SMR', 'Neck Foam Rolling'],
+  ['Peroneals-SMR', 'Peroneals Foam Rolling'],
+  ['Piriformis-SMR', 'Piriformis Foam Rolling'],
+  ['Quadriceps-SMR', 'Quad Foam Rolling'],
+  ['Rhomboids-SMR', 'Rhomboids Foam Rolling'],
+  ['Air_Bike', 'Bicycle Crunch'],
+  ['Alternate_Heel_Touchers', 'Heel Touches'],
+  ['Ab_Roller', 'Ab Wheel Rollout'],
+  ['Ankle_On_The_Knee', 'Figure 4 Stretch'],
+  ['Butt_Lift_Bridge', 'Glute Bridge'],
+  ['Butterfly', 'Pec Deck Fly'],
+  ['Ball_Leg_Curl', 'Stability Ball Leg Curl'],
+  ['Physioball_Hip_Bridge', 'Stability Ball Hip Bridge'],
+  ['Body-Up', 'Plank Up-Down'],
+  ['Body_Tricep_Press', 'Bodyweight Tricep Extension'],
+];
+
+function renameSeedExercises(): void {
+  for (const [slug, name] of SEED_NAME_RENAMES) {
+    try {
+      db.runSync(`UPDATE exercises SET name = ? WHERE source = 'SEED' AND source_slug = ?`, [name, slug]);
+    } catch {
+      // Only realistic cause: the user already has a custom exercise with this exact name,
+      // which the UNIQUE constraint on exercises.name refuses to collide with — leave the
+      // seed exercise under its old name rather than fail the whole migration over it.
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // initSchema — call once on app start, before any queries are made
 // ---------------------------------------------------------------------------
@@ -308,5 +354,6 @@ export function initSchema(): void {
     db.runSync('INSERT OR IGNORE INTO user_settings (id, schema_version) VALUES (1, 1)');
 
     seedExercises();
+    renameSeedExercises();
   });
 }
