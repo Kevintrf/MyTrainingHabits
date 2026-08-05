@@ -46,6 +46,10 @@ function mapExercise(row: ExerciseRow): Exercise {
 export async function searchExercises(q: string, filter?: MuscleGroup | 'CUSTOM'): Promise<Exercise[]> {
   const isCustomFilter = filter === 'CUSTOM';
   const muscleGroup = isCustomFilter ? null : (filter ?? null);
+  // Stored exercise names have no leading/trailing whitespace, so a query with any (e.g. left
+  // over from typing a multi-word name, or backspacing) would LIKE-match against a substring
+  // that can never exist in the data — silently returning nothing even for an exact name.
+  const trimmedQuery = q.trim();
 
   const rows = await db.getAllAsync<ExerciseRow>(
     `SELECT ${EXERCISE_COLUMNS.split(', ').map((c) => `e.${c}`).join(', ')}
@@ -61,7 +65,7 @@ export async function searchExercises(q: string, filter?: MuscleGroup | 'CUSTOM'
        AND (? = 0 OR e.source = 'USER')
      ORDER BY (e.source = 'USER') DESC, COALESCE(usage.set_count, 0) DESC, e.name
      LIMIT 50`,
-    [`%${q}%`, muscleGroup, muscleGroup, isCustomFilter ? 1 : 0],
+    [`%${trimmedQuery}%`, muscleGroup, muscleGroup, isCustomFilter ? 1 : 0],
   );
   return rows.map(mapExercise);
 }

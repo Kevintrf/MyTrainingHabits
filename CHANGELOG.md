@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (24)
+
+### fix: exercise search returning nothing on a trailing space
+`searchExercises` built its `LIKE` pattern straight from the raw query, so a trailing (or leading) space — easy to end up with mid-typing, e.g. right after finishing a word — meant matching against a substring like `"bench "` that stored exercise names never actually contain, since names themselves have no surrounding whitespace. Silently returned zero results even for an otherwise-exact name. Now trims the query before building the pattern.
+
+---
+
 ## 2026-08-04 (23)
 
 ### feat: new app icon/logo
