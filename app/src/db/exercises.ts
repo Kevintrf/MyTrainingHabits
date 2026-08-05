@@ -95,6 +95,28 @@ export async function updateExerciseNotes(id: number, notes: string): Promise<vo
   await db.runAsync('UPDATE exercises SET notes = ? WHERE id = ?', [notes || null, id]);
 }
 
+// Scoped to source = 'USER' as a defense-in-depth check — the seed library (free-exercise-db)
+// is shared reference data, not the user's own, so it shouldn't be editable/deletable even if
+// a caller somehow reaches this for a non-custom exercise. The UI already only exposes these
+// actions for custom exercises.
+export async function updateExercise(id: number, data: {
+  name: string;
+  muscle_group: MuscleGroup;
+  type: ExerciseType;
+}): Promise<void> {
+  await db.runAsync(
+    `UPDATE exercises SET name = ?, muscle_group = ?, type = ? WHERE id = ? AND source = 'USER'`,
+    [data.name, data.muscle_group, data.type, id],
+  );
+}
+
+// program_exercises.exercise_id cascades (removed from any program workout it's used in);
+// cycle_sets.exercise_id sets NULL with exercise_name already denormalized, so past logged
+// history stays fully readable even after the exercise itself is gone.
+export async function deleteExercise(id: number): Promise<void> {
+  await db.runAsync(`DELETE FROM exercises WHERE id = ? AND source = 'USER'`, [id]);
+}
+
 // Exercises with the most recently logged sets, most recent first.
 // Only counts sets that actually have a value — pre-seeded blank sets from
 // stamping a cycle don't count as "recent" until the user logs something.

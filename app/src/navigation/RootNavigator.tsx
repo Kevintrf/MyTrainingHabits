@@ -30,7 +30,7 @@ export type ProgramStackParamList = {
 
 export type ExercisesStackParamList = {
   ExercisesHome: undefined;
-  CreateExercise: { initialName?: string } | undefined;
+  CreateExercise: { initialName?: string; editingExerciseId?: number } | undefined;
   ExerciseDetail: { exerciseId: number; exerciseName: string };
   ExerciseHistory: { exerciseId: number; exerciseName: string };
 };
@@ -120,7 +120,11 @@ function ExercisesStackNavigator() {
           ),
         })}
       />
-      <ExercisesStack.Screen name="CreateExercise" component={CreateExerciseScreen} options={{ title: 'New Exercise' }} />
+      <ExercisesStack.Screen
+        name="CreateExercise"
+        component={CreateExerciseScreen}
+        options={({ route }) => ({ title: route.params?.editingExerciseId ? 'Edit Exercise' : 'New Exercise' })}
+      />
       <ExercisesStack.Screen
         name="ExerciseDetail"
         component={ExerciseDetailScreen}

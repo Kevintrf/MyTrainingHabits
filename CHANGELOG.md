@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-08-04 (25)
+
+### feat: edit, rename, and delete custom exercises
+Custom (`USER`-source) exercises can now be edited and deleted from ExerciseDetailScreen — a pencil icon next to the name opens the same form used to create one (`CreateExerciseScreen`, now doubling as the edit screen: prefills from the existing exercise and calls `updateExercise` instead of `createExercise` when editing), and a red "Delete Exercise" button at the bottom removes it after a confirmation. Both actions are hidden for seed-library exercises — the imported free-exercise-db data isn't the user's to rename or remove. New `updateExercise`/`deleteExercise` DB functions are scoped to `source = 'USER'` as a defense-in-depth check regardless of what the UI already restricts. Deleting relies on existing FK behavior: it cascades out of any program workout using it, while past logged sets keep their already-denormalized `exercise_name` and stay fully readable. ExerciseDetailScreen now refetches on every focus (not just first mount) and syncs its header title live, so returning from an edit shows the updated name/tags immediately.
+
+---
+
 ## 2026-08-04 (24)
 
 ### fix: exercise search returning nothing on a trailing space

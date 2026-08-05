@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { getExercise, updateExerciseNotes } from '../db/exercises';
+import { deleteExercise, getExercise, updateExerciseNotes } from '../db/exercises';
 import { ExercisesStackParamList } from '../navigation/RootNavigator';
 import { Exercise } from '../services/api';
 import { EXERCISE_IMAGES } from '../assets/exerciseImages';
+import { showAlert } from '../utils/alert';
 
 const IMAGE_WIDTH = Dimensions.get('window').width - 40;
 
@@ -24,13 +25,18 @@ export default function ExerciseDetailScreen() {
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  // Refetches on every focus (not just first mount) so returning from editing the exercise
+  // shows the updated name/muscle group/type without needing a manual refresh.
+  useFocusEffect(useCallback(() => {
     getExercise(exerciseId).then((ex) => {
       setExercise(ex);
       setNotes(ex.notes ?? '');
       setLoading(false);
+      // The header title otherwise stays frozen at whatever name was passed in the route
+      // params at navigation time — update it directly so a rename shows up immediately.
+      navigation.setOptions({ title: ex.name });
     });
-  }, [exerciseId]);
+  }, [exerciseId, navigation]));
 
   function handleNotesChange(v: string) {
     setNotes(v);
@@ -38,7 +44,24 @@ export default function ExerciseDetailScreen() {
     debounceRef.current = setTimeout(() => { updateExerciseNotes(exerciseId, v); }, 600);
   }
 
+  function handleDelete() {
+    if (!exercise) return;
+    showAlert('Delete exercise?', `"${exercise.name}" will be removed from any programs using it. Past logged history keeps the exercise name and stays intact.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteExercise(exerciseId);
+          navigation.goBack();
+        },
+      },
+    ]);
+  }
+
   if (loading || !exercise) return <ActivityIndicator style={styles.loader} color="#2D6A4F" />;
+
+  const isCustom = exercise.source === 'USER';
 
   const images = exercise.source_slug ? EXERCISE_IMAGES[exercise.source_slug] ?? [] : [];
   const steps = exercise.instructions ? exercise.instructions.split('\n').filter(Boolean) : [];
@@ -47,7 +70,17 @@ export default function ExerciseDetailScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.name}>{exercise.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{exercise.name}</Text>
+            {isCustom && (
+              <TouchableOpacity
+                style={styles.editIconBtn}
+                onPress={() => navigation.navigate('CreateExercise', { editingExerciseId: exerciseId })}
+              >
+                <Ionicons name="pencil" size={18} color="#2D6A4F" />
+              </TouchableOpacity>
+            )}
+          </View>
           <View style={styles.tags}>
             <Text style={styles.tag}>{exercise.muscle_group}</Text>
             <Text style={styles.tag}>{exercise.type}</Text>
@@ -109,6 +142,12 @@ export default function ExerciseDetailScreen() {
             <Text style={styles.placeholderText}>No guide available</Text>
           </View>
         )}
+
+        {isCustom && (
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteBtnText}>Delete Exercise</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -119,7 +158,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9F9F9' },
   content: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontSize: 22, fontWeight: '700', color: '#1A1A1A' },
+  editIconBtn: { padding: 4 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   tag: { fontSize: 12, color: '#999', fontWeight: '600', letterSpacing: 0.5 },
   historyRow: {
@@ -180,4 +221,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   stepText: { flex: 1, fontSize: 14, color: '#1A1A1A', lineHeight: 20 },
+  deleteBtn: { alignItems: 'center', marginTop: 28 },
+  deleteBtnText: { color: '#e74c3c', fontWeight: '600', fontSize: 14 },
 });

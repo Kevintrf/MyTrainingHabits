@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { showAlert } from '../utils/alert';
-import { createExercise } from '../db/exercises';
+import { createExercise, getExercise, updateExercise } from '../db/exercises';
 import { ExercisesStackParamList } from '../navigation/RootNavigator';
 import { MuscleGroup, ExerciseType } from '../services/api';
 
@@ -17,17 +17,33 @@ const EXERCISE_TYPES: { value: ExerciseType; label: string }[] = [
 export default function CreateExerciseScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ExercisesStackParamList>>();
   const route = useRoute<RouteProp<ExercisesStackParamList, 'CreateExercise'>>();
+  const editingExerciseId = route.params?.editingExerciseId;
 
   const [name, setName] = useState(route.params?.initialName ?? '');
   const [muscleGroup, setMuscleGroup] = useState<MuscleGroup>('OTHER');
   const [type, setType] = useState<ExerciseType>('STRENGTH');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(!!editingExerciseId);
+
+  useEffect(() => {
+    if (!editingExerciseId) return;
+    getExercise(editingExerciseId).then((ex) => {
+      setName(ex.name);
+      setMuscleGroup(ex.muscle_group);
+      setType(ex.type);
+      setLoading(false);
+    });
+  }, [editingExerciseId]);
 
   async function handleSave() {
     if (!name.trim()) return showAlert('Enter an exercise name');
     setSaving(true);
     try {
-      await createExercise({ name: name.trim(), muscle_group: muscleGroup, type });
+      if (editingExerciseId) {
+        await updateExercise(editingExerciseId, { name: name.trim(), muscle_group: muscleGroup, type });
+      } else {
+        await createExercise({ name: name.trim(), muscle_group: muscleGroup, type });
+      }
       navigation.goBack();
     } catch (e) {
       showAlert('Could not save', e instanceof Error ? e.message : 'Something went wrong');
@@ -35,6 +51,8 @@ export default function CreateExerciseScreen() {
       setSaving(false);
     }
   }
+
+  if (loading) return <ActivityIndicator style={styles.loader} color="#2D6A4F" />;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -76,7 +94,7 @@ export default function CreateExerciseScreen() {
         </View>
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Exercise'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : editingExerciseId ? 'Save Changes' : 'Save Exercise'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -84,6 +102,7 @@ export default function CreateExerciseScreen() {
 }
 
 const styles = StyleSheet.create({
+  loader: { flex: 1, marginTop: 100 },
   container: { flex: 1, backgroundColor: '#F9F9F9' },
   content: { padding: 20, paddingBottom: 40 },
   sectionHeading: { fontSize: 12, fontWeight: '700', color: '#999', letterSpacing: 1, marginBottom: 8, marginTop: 16 },
