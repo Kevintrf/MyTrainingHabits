@@ -102,6 +102,7 @@ app/
       CycleScreen            active cycle's workouts with done-checkboxes; "New Cycle" button
       WorkoutScreen           expandable exercise cards with inline set rows (reps/weight/checkbox);
                               guide + history shortcut icons per exercise
+      WorkoutInfoScreen       (i) on a workout: the day's exercises, muscles worked, sets per muscle
       ProgramScreen           ordered list of the program's workouts
       EditProgramWorkoutScreen  edit a program workout's label/exercises/default targets
       ExercisesScreen         search/browse the exercise library, muscle group filter

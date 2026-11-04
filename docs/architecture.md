@@ -18,6 +18,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 |---------------------------|--------------------------------------------------------------------------|
 | CycleScreen               | Main view — active cycle's workouts with done-checkboxes; "New Cycle" button |
 | WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the exercise's latest logged reps/weight (program target reps if no history) as a grey placeholder, see below); for an exercise with a weight list (see Weight Lists below) the weight field opens a picker grid instead of the keyboard; each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
+| WorkoutInfoScreen         | The (i) button in WorkoutScreen's header — overview of the day: exercise/set/muscle counts, upper/core/lower split, combined body map, sets per muscle (direct/indirect, with which exercises), muscles not worked, and each exercise's main/helper muscles (tap → ExerciseDetailScreen); see Day Overview below |
 | ExercisesScreen           | Browse and search the exercise library; muscle-group filter chips plus a CUSTOM chip (right after ALL) for user-created exercises only |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
 | ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — weight input choice (typed in, or one of the fixed weight lists — see Weight Lists below), personal notes, images, and step-by-step guide (guide/images only populated for the built-in library — free-exercise-db plus the curated additions — not custom exercises); links to ExerciseHistoryScreen |
@@ -191,6 +192,16 @@ A collapsible "Superset ideas" card (`components/SupersetTip.tsx`) at the top of
 - **Never paired** — when one exercise's primary muscle is any muscle of the other (curl after a row), when both have a delt head as primary, or when both load the lower back or the forearms (spine and grip).
 - **Fit** — opposing primaries (chest/front delts ↔ back, chest ↔ rear delts, biceps ↔ triceps, quads ↔ hamstrings, abs ↔ lower back, abductors ↔ adductors) score 5, upper body + lower body 2, anything else non-competing 1. One opposing pair therefore always beats the two weaker pairs it would have to be split into.
 - **Choice** — the set of pairs with the highest total, found exhaustively over subsets (memoised bitmask, first 16 eligible exercises). Ties go to pairs closer together in the day's order, so following the ideas needs the least reshuffling.
+
+## Day Overview (WorkoutInfoScreen)
+
+The (i) button at the top right of a workout opens an overview of that day, computed on the spot by `buildDayOverview()` in `src/utils/dayOverview.ts` (pure) from the day's exercises and the library's muscle tags (`getExerciseMuscles(source_slug)`). No text is generated: the descriptions are `MUSCLE_INFO`'s, and everything else is counts.
+
+- **Volume** is counted in sets: an exercise's sets are *direct* sets for its primary muscles and *indirect* sets for its secondary ones. Muscles are sorted by direct, then indirect sets. Each muscle lists the exercises it's the main muscle in and the ones it helps in.
+- **Body map** — the shared `MuscleMap`: dark for muscles that are primary in at least one exercise, light for muscles that only help.
+- **Focus** — the share of the day's sets per region (upper body / core / lower body, by `REGION_OF`), using each exercise's primary muscles. An exercise whose primary muscles span regions splits its sets evenly between them.
+- **Not worked today** — muscles from the 17-name vocabulary that no exercise touches.
+- Custom exercises and exercises removed from the library have no muscle data. They count towards the exercise and set totals only, and their entry says why there's no muscle info.
 
 ## Set Logging Pre-fill (WorkoutScreen)
 

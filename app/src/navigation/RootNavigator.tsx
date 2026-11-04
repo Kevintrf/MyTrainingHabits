@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import CycleScreen from '../screens/CycleScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
+import WorkoutInfoScreen from '../screens/WorkoutInfoScreen';
 import ProgramScreen from '../screens/ProgramScreen';
 import EditProgramWorkoutScreen from '../screens/EditProgramWorkoutScreen';
 import ExercisesScreen from '../screens/ExercisesScreen';
@@ -19,6 +20,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 export type CycleStackParamList = {
   CycleHome: undefined;
   Workout: { cycleWorkoutId: number; label: string };
+  WorkoutInfo: { cycleWorkoutId: number; label: string };
   ExerciseDetail: { exerciseId: number; exerciseName: string };
   ExerciseHistory: { exerciseId: number; exerciseName: string };
 };
@@ -59,7 +61,23 @@ function CycleStackNavigator() {
       <CycleStack.Screen
         name="Workout"
         component={WorkoutScreen}
-        options={({ route }) => ({ title: route.params.label })}
+        options={({ route, navigation }) => ({
+          title: route.params.label,
+          headerRight: () => (
+            <Ionicons
+              name="information-circle-outline"
+              size={26}
+              color="#2D6A4F"
+              accessibilityLabel="About this workout"
+              onPress={() => navigation.navigate('WorkoutInfo', route.params)}
+            />
+          ),
+        })}
+      />
+      <CycleStack.Screen
+        name="WorkoutInfo"
+        component={WorkoutInfoScreen}
+        options={({ route }) => ({ title: `${route.params.label} overview` })}
       />
       <CycleStack.Screen
         name="ExerciseDetail"

@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (37)
+
+### feat: day overview behind an (i) button on the workout screen
+A workout now has an **(i)** button at the top right that opens an overview of the day. At the top are the number of exercises, sets and muscles worked, how many sets are done so far, and the day's **focus**: how its sets split between upper body, core and lower body. Next comes a front/back body drawing of everything the day works (dark green for main muscles, light green for muscles that only help), then **sets per muscle**. That section lists each muscle with its direct sets (main mover) and indirect sets (helper), a bar to compare them, its anatomy and function, and which exercises work it. A **not worked today** list shows the muscles the day leaves out. Last comes each exercise with its sets × target reps, equipment, level, and main and helper muscles; tap one to open its guide page. Everything is computed from the day's exercises and the library's muscle tags by `buildDayOverview()` in the new `src/utils/dayOverview.ts`, with no generated text, so it follows any change to the day. Custom exercises and exercises removed from the library count towards the totals, and their entry says why there's no muscle info. New screen `WorkoutInfoScreen`.
+
+---
+
 ## 2026-11-04 (36)
 
 ### feat: superset ideas on the workout screen
