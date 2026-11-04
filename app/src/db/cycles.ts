@@ -138,6 +138,7 @@ interface DetailRow {
   short_note: string | null;
   program_exercise_default_reps: number | null;
   weight_options: string | null;
+  source_slug: string | null;
 }
 
 export async function getCycleWorkoutDetail(cycleWorkoutId: number): Promise<CycleWorkoutDetail> {
@@ -146,7 +147,7 @@ export async function getCycleWorkoutDetail(cycleWorkoutId: number): Promise<Cyc
             cs.id AS set_id, cs.exercise_id, cs.exercise_name, e.type AS exercise_type,
             cs.set_number, cs.reps, cs.weight_kg, cs.is_complete AS set_complete, cs.completed_at,
             pe.id AS program_exercise_id, e.short_note, pe.default_reps AS program_exercise_default_reps,
-            e.weight_options
+            e.weight_options, e.source_slug
      FROM cycle_workouts cw
      LEFT JOIN cycle_sets cs ON cs.cycle_workout_id = cw.id
      LEFT JOIN exercises e ON e.id = cs.exercise_id
@@ -176,6 +177,7 @@ export async function getCycleWorkoutDetail(cycleWorkoutId: number): Promise<Cyc
         short_note: row.short_note,
         program_exercise_default_reps: row.program_exercise_default_reps,
         weight_options: row.weight_options,
+        source_slug: row.source_slug,
         sets: [],
       });
     }

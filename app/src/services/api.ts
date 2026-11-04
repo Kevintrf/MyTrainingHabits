@@ -102,6 +102,9 @@ export interface CycleWorkoutExercise {
   program_exercise_default_reps: number | null;
   // The exercise's Exercise.weight_options — null if typed in, or if the exercise was deleted.
   weight_options: string | null;
+  // The exercise's Exercise.source_slug — used to look up its muscles (superset ideas). Null for
+  // custom exercises, or if the exercise was deleted.
+  source_slug: string | null;
   sets: CycleSet[];
 }
 

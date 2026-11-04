@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (36)
+
+### feat: superset ideas on the workout screen
+A workout now starts with a collapsible **Superset ideas** card. It lists which of the day's exercises go well together, done back-to-back with the usual rest after the pair, and why. For Day B, for example: shoulder press + cable rows, pec deck + face pull, leg extensions + leg curls, preacher curl + triceps pushdown. The pairing follows a 2025 *Sports Medicine* meta-analysis (Zhang et al., 19 studies). Supersets took about a third less time with the same strength and muscle gains. Opposing-muscle pairs even raised the reps done, while pairs for the same muscle lowered them. So pairs of opposing muscles come first (chest/shoulders + back, chest + rear delts, biceps + triceps, quads + hamstrings, abs + lower back), then upper + lower body, then any two exercises with no shared muscle. Exercises are never paired when one's main muscle also works in the other (e.g. a curl after a row), when both are shoulder exercises, or when both load the lower back or the grip. Muscles come from each library exercise's tags, with "shoulders" split into front/side/rear delts by exercise name; custom exercises and cardio are left out. Logic in `src/utils/supersets.ts`; the workout detail now carries each exercise's `source_slug`.
+
+---
+
 ## 2026-11-04 (35)
 
 ### feat: pick set weights from fixed weight lists

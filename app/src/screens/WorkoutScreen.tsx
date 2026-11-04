@@ -17,6 +17,7 @@ import { useApp } from '../context/AppContext';
 import { useSetTimePrompt } from '../context/SetTimePromptContext';
 import SetTimeChoiceToast from '../components/SetTimeChoiceToast';
 import WeightPickerModal from '../components/WeightPickerModal';
+import SupersetTip from '../components/SupersetTip';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail } from '../db/cycles';
 import { addSet, getLastSetsForExercise, getTargetStreak, markSetComplete, updateSet } from '../db/sets';
@@ -369,16 +370,19 @@ export default function WorkoutScreen() {
         {detail.exercises.length === 0 ? (
           <Text style={styles.empty}>This workout has no exercises. Add some in the Program tab.</Text>
         ) : (
-          detail.exercises.map((ex) => (
-            <ExerciseCard
-              key={exerciseKey(ex)}
-              exercise={ex}
-              lastSets={lastSets[exerciseKey(ex)] ?? []}
-              targetStreak={targetStreaks[exerciseKey(ex)] ?? null}
-              onChanged={handleChanged}
-              resolveCompletedAt={resolveCompletedAt}
-            />
-          ))
+          <>
+            <SupersetTip exercises={detail.exercises} />
+            {detail.exercises.map((ex) => (
+              <ExerciseCard
+                key={exerciseKey(ex)}
+                exercise={ex}
+                lastSets={lastSets[exerciseKey(ex)] ?? []}
+                targetStreak={targetStreaks[exerciseKey(ex)] ?? null}
+                onChanged={handleChanged}
+                resolveCompletedAt={resolveCompletedAt}
+              />
+            ))}
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>

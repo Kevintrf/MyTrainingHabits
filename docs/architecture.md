@@ -183,6 +183,15 @@ Under an exercise's name, a small green `trending-up` line shows when the target
 - **A session counts** only if *every* set row of the exercise in it is completed, each with reps ≥ target, all at the same weight (or all without one, e.g. bodyweight). A set left unchecked means the session doesn't count.
 - **Streak** — counted from the newest session until one doesn't count or used a different weight than the newest, so raising the weight starts a new streak. If the newest session doesn't count there's no hint at all.
 
+## Superset Ideas (WorkoutScreen)
+
+A collapsible "Superset ideas" card (`components/SupersetTip.tsx`) at the top of a workout lists which of the day's exercises pair well as supersets, each with its reason. It's hidden when nothing pairs up. The pairing is `suggestSupersets()` in `src/utils/supersets.ts` (pure), based on Zhang et al., *Superset Versus Traditional Resistance Training Prescriptions*, Sports Medicine 2025 (meta-analysis of 19 studies). Supersets took about a third less time with the same strength and hypertrophy results. Agonist–antagonist pairs raised reps, and pairs for the same muscles lowered the volume lifted.
+
+- **Muscles** — the library's primary/secondary tags via `getExerciseMuscles(source_slug)`, so custom exercises (no slug) and cardio are left out. free-exercise-db's single "shoulders" tag is split into front/side/rear delts by name (press → front, lateral raise → side, face pull/reverse fly → rear). As a helper muscle it counts as the front delt for pushes and the rear delt for pulls.
+- **Never paired** — when one exercise's primary muscle is any muscle of the other (curl after a row), when both have a delt head as primary, or when both load the lower back or the forearms (spine and grip).
+- **Fit** — opposing primaries (chest/front delts ↔ back, chest ↔ rear delts, biceps ↔ triceps, quads ↔ hamstrings, abs ↔ lower back, abductors ↔ adductors) score 5, upper body + lower body 2, anything else non-competing 1. One opposing pair therefore always beats the two weaker pairs it would have to be split into.
+- **Choice** — the set of pairs with the highest total, found exhaustively over subsets (memoised bitmask, first 16 eligible exercises). Ties go to pairs closer together in the day's order, so following the ideas needs the least reshuffling.
+
 ## Set Logging Pre-fill (WorkoutScreen)
 
 Each unlogged set's reps/weight fields show a suggestion via `placeholder` (grey, `#bbb`) rather than preloading it into the real `value` — visually distinct from something actually entered, and doesn't get silently saved just because the field was rendered. The suggestion is **the same on every day the exercise appears**: the latest logged result for that exercise, regardless of which program workout or cycle it came from.
