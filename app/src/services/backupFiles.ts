@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 import { Directory, File } from 'expo-file-system';
 
-// File-system side of backups (the data side is src/db/backup.ts). Uses expo-file-system's
+// File-system side of backups and the training history export (the data side is
+// src/db/backup.ts and src/db/trainingExport.ts). Uses expo-file-system's
 // system pickers: a folder picker to save into (Android's Storage Access Framework / the iOS
 // Files app — so the backup can go anywhere, including cloud drives), and a file picker to
 // open one. Both resolve to null when the user cancels the picker.
@@ -11,15 +12,16 @@ function isPickerCancel(e: unknown): boolean {
   return /cancel/i.test(`${err?.code ?? ''} ${err?.message ?? ''}`);
 }
 
-function backupFileName(now = new Date()): string {
+function timestampedFileName(prefix: string, now = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `MyTrainingHabits-backup-${date}-${time}.json`;
+  return `${prefix}-${date}-${time}.json`;
 }
 
-// Asks for a folder and writes `json` into a new timestamped file there. Returns the file name.
-export async function saveBackupFile(json: string): Promise<string | null> {
+// Asks for a folder and writes `json` into a new file there named `<prefix>-<date>-<time>.json`.
+// Returns the file name.
+export async function saveJsonFile(json: string, prefix: string): Promise<string | null> {
   let directory: Directory;
   try {
     directory = new Directory((await Directory.pickDirectoryAsync()).uri);
@@ -27,10 +29,18 @@ export async function saveBackupFile(json: string): Promise<string | null> {
     if (isPickerCancel(e)) return null;
     throw e;
   }
-  const name = backupFileName();
+  const name = timestampedFileName(prefix);
   const file = directory.createFile(name, 'application/json');
   file.write(json);
   return name;
+}
+
+export function saveBackupFile(json: string): Promise<string | null> {
+  return saveJsonFile(json, 'MyTrainingHabits-backup');
+}
+
+export function saveTrainingHistoryFile(json: string): Promise<string | null> {
+  return saveJsonFile(json, 'MyTrainingHabits-training-history');
 }
 
 // Asks for a file and returns its text contents.

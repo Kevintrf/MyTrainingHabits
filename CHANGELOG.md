@@ -11,6 +11,13 @@ Exercise cards on a workout now show a small green line under the name when, the
 
 ---
 
+## 2026-11-04 (32)
+
+### feat: export training history as JSON for external analysis
+New **Analysis** section in Settings with **Export training history**, which saves `MyTrainingHabits-training-history-YYYY-MM-DD-HHMMSS.json` to a folder you pick. Unlike the backup it's built to be read, not imported. It's pretty-printed and has no internal ids, and an `about` field explains the structure. It contains `program` (each day's exercises with sets and target reps/weight), `history` (every cycle, oldest first, with each trained workout and its completed sets grouped by exercise in the order performed, with reps, `weight_kg` and ISO UTC times), and `exercises`: the name, muscle group, type, equipment, level, category, description (the library's instructions), and long/short notes of every exercise in the program or history. Only checked-off sets count; days not trained yet are left out. Sets are listed under the exercise's current name, so renamed custom exercises stay together; deleted exercises keep their stored name and are marked `deleted`. Cycle times stored as SQLite `YYYY-MM-DD HH:MM:SS` are converted to ISO. Logic in `src/db/trainingExport.ts`; `backupFiles.ts`'s save helper now takes a file-name prefix (`saveJsonFile`).
+
+---
+
 ## 2026-11-04 (31)
 
 ### feat: export and import all data as a JSON backup

@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { getSettings, updateSettings } from '../db/settings';
 import { BackupSummary, exportBackup, importBackup, parseBackup } from '../db/backup';
-import { pickBackupFile, saveBackupFile } from '../services/backupFiles';
+import { exportTrainingHistory } from '../db/trainingExport';
+import { pickBackupFile, saveBackupFile, saveTrainingHistoryFile } from '../services/backupFiles';
 import { useApp } from '../context/AppContext';
 import { showAlert } from '../utils/alert';
 import { openExactAlarmSettings } from '../services/restTimerNotifications';
@@ -46,7 +47,7 @@ export default function SettingsScreen() {
   const { remembered, clearRemembered } = useSetTimePrompt();
   const { refreshCycle, cancelRestTimer } = useApp();
   const navigation = useNavigation();
-  const [backupBusy, setBackupBusy] = useState<'export' | 'import' | null>(null);
+  const [backupBusy, setBackupBusy] = useState<'export' | 'import' | 'history' | null>(null);
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -107,6 +108,25 @@ export default function SettingsScreen() {
       const { json, summary } = await exportBackup();
       const name = await saveBackupFile(json);
       if (name) showAlert('Backup saved', `${name}\n\nContains ${describeSummary(summary)}.`);
+    } catch (e) {
+      showAlert('Export failed', errorMessage(e));
+    } finally {
+      setBackupBusy(null);
+    }
+  }
+
+  async function handleExportHistory() {
+    if (backupBusy) return;
+    setBackupBusy('history');
+    try {
+      const { json, summary } = await exportTrainingHistory();
+      const name = await saveTrainingHistoryFile(json);
+      if (name) {
+        showAlert(
+          'Training history saved',
+          `${name}\n\nContains ${plural(summary.cycles, 'cycle')}, ${plural(summary.workouts, 'workout')}, ${plural(summary.sets, 'set')} and ${plural(summary.exercises, 'exercise description')}.`,
+        );
+      }
     } catch (e) {
       showAlert('Export failed', errorMessage(e));
     } finally {
@@ -306,6 +326,20 @@ export default function SettingsScreen() {
               <Text style={styles.settingsLinkDesc}>Restores a backup file, replacing all current data</Text>
             </View>
             {backupBusy === 'import' ? <ActivityIndicator color="#2D6A4F" /> : <Ionicons name="chevron-forward" size={18} color="#ccc" />}
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionHeading}>ANALYSIS</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.settingsLinkRow} onPress={handleExportHistory} disabled={!!backupBusy}>
+            <Ionicons name="analytics-outline" size={20} color="#2D6A4F" />
+            <View style={styles.settingsLinkText}>
+              <Text style={styles.settingsLinkTitle}>Export training history</Text>
+              <Text style={styles.settingsLinkDesc}>
+                Your program, every logged set, and the name and description of each exercise used, as a self-contained JSON file for analysis in other tools. Not a backup — it can't be imported.
+              </Text>
+            </View>
+            {backupBusy === 'history' ? <ActivityIndicator color="#2D6A4F" /> : <Ionicons name="chevron-forward" size={18} color="#ccc" />}
           </TouchableOpacity>
         </View>
       </ScrollView>

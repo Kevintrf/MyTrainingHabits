@@ -95,6 +95,7 @@ Goal: Features that make this app meaningfully better than a notebook.
 - [ ] Authentication — replace hardcoded user_id=1 with real sign-up/login
 - [ ] Onboarding flow — first-run screen to set name and goals
 - [x] Data backup — JSON export/import of all data from Settings
+- [x] Training history export — self-contained JSON (program, logged sets, exercise descriptions) for external analysis
 - [ ] Data export — CSV of the full training log
 - [ ] Personal records — automatically flag when a new max weight is hit for an exercise
 - [ ] Volume tracking — track total sets × reps × weight per muscle group per cycle
