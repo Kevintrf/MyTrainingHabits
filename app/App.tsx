@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider } from './src/context/AppContext';
+import { SetTimePromptProvider } from './src/context/SetTimePromptContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import RestTimerBanner from './src/components/RestTimerBanner';
 import { initSchema } from './src/db/schema';
@@ -12,11 +13,13 @@ initSchema();
 export default function App() {
   return (
     <AppProvider>
-      <StatusBar style="dark" />
-      <View style={{ flex: 1 }}>
-        <RootNavigator />
-        <RestTimerBanner />
-      </View>
+      <SetTimePromptProvider>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1 }}>
+          <RootNavigator />
+          <RestTimerBanner />
+        </View>
+      </SetTimePromptProvider>
     </AppProvider>
   );
 }

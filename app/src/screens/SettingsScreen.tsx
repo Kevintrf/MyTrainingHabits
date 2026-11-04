@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView
 import { Ionicons } from '@expo/vector-icons';
 import { getSettings, updateSettings } from '../db/settings';
 import { openExactAlarmSettings } from '../services/restTimerNotifications';
+import { describeChoice, useSetTimePrompt } from '../context/SetTimePromptContext';
+import { minutesLeft } from '../components/SetTimeChoiceToast';
 
 function sanitizeMinutes(v: string): string {
   return v.replace(/[^0-9]/g, '').slice(0, 1);
@@ -18,6 +20,7 @@ export default function SettingsScreen() {
   const [minutesText, setMinutesText] = useState('2');
   const [secondsText, setSecondsText] = useState('00');
   const durationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { remembered, clearRemembered } = useSetTimePrompt();
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -152,6 +155,27 @@ export default function SettingsScreen() {
             </>
           )}
         </View>
+
+        <Text style={styles.sectionHeading}>EDITING OLDER SETS</Text>
+        <View style={styles.card}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <Text style={styles.toggleLabel}>
+                {remembered ? `Not asking: ${describeChoice(remembered.choice)}` : 'Asking every time'}
+              </Text>
+              <Text style={styles.toggleDesc}>
+                {remembered
+                  ? `For another ${minutesLeft(remembered.until, Date.now())} min, from "Don't ask again for 1 hour". Checking off a set in a workout from an earlier day or 2+ hours ago won't ask which time to log it at.`
+                  : 'Checking off a set in a workout from an earlier day or 2+ hours ago asks whether to keep its original time.'}
+              </Text>
+            </View>
+            {remembered && (
+              <TouchableOpacity style={styles.resetBtn} onPress={clearRemembered}>
+                <Text style={styles.resetText}>Ask again</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -196,4 +220,6 @@ const styles = StyleSheet.create({
   settingsLinkText: { flex: 1 },
   settingsLinkTitle: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   settingsLinkDesc: { fontSize: 12, color: '#999', marginTop: 2 },
+  resetBtn: { backgroundColor: '#2D6A4F', borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12 },
+  resetText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });

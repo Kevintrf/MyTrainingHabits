@@ -23,9 +23,9 @@ class RestAlarmModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("RestAlarm")
 
-    Function("scheduleRestAlarm") { triggerAtMillis: Double, soundEnabled: Boolean ->
+    Function("scheduleRestAlarm") { triggerAtMillis: Double, soundEnabled: Boolean, headphonesOnly: Boolean ->
       val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-      val pendingIntent = restAlarmPendingIntent(soundEnabled)
+      val pendingIntent = restAlarmPendingIntent(soundEnabled, headphonesOnly)
 
       // Same exact-vs-inexact fallback as expo-notifications' own scheduling delegate
       // (ExpoSchedulingDelegate.kt) — without SCHEDULE_EXACT_ALARM granted on Android 12+,
@@ -49,10 +49,10 @@ class RestAlarmModule : Module() {
 
     Function("cancelRestAlarm") {
       val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-      // The soundEnabled value passed here doesn't matter for cancellation: Intent.filterEquals
+      // The extras passed here don't matter for cancellation: Intent.filterEquals
       // (what PendingIntent matching uses) ignores extras, only action/data/component/class —
       // so this resolves to the same PendingIntent regardless of what was originally scheduled.
-      alarmManager.cancel(restAlarmPendingIntent(true))
+      alarmManager.cancel(restAlarmPendingIntent(true, false))
       // Context.stopService() returns Boolean, not Unit — end on an explicit Unit so this
       // lambda unambiguously matches the `() -> Unit` Function() overload rather than risking
       // resolution against the generic `() -> R` one.
@@ -74,9 +74,10 @@ class RestAlarmModule : Module() {
     }
   }
 
-  private fun restAlarmPendingIntent(soundEnabled: Boolean): PendingIntent {
+  private fun restAlarmPendingIntent(soundEnabled: Boolean, headphonesOnly: Boolean): PendingIntent {
     val intent = Intent(context, RestAlarmReceiver::class.java).apply {
       putExtra(RestAlarmReceiver.EXTRA_SOUND_ENABLED, soundEnabled)
+      putExtra(RestAlarmReceiver.EXTRA_HEADPHONES_ONLY, headphonesOnly)
     }
     return PendingIntent.getBroadcast(
       context,

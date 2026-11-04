@@ -69,14 +69,20 @@ export async function updateSet(id: number, patch: { reps?: number | null; weigh
   );
 }
 
-// Marking a set complete records the moment it happened (completed_at); unmarking it
-// clears that timestamp — it always reflects the current completion state, not a stale
-// value from a previous toggle. This is what exercise history is built from.
-export async function markSetComplete(id: number, complete: boolean): Promise<void> {
-  await db.runAsync(
-    `UPDATE cycle_sets SET is_complete = ?, completed_at = ? WHERE id = ?`,
-    [complete ? 1 : 0, complete ? new Date().toISOString() : null, id],
-  );
+// Marking a set complete records when it happened (completed_at) — now by default, or an
+// explicit earlier time when re-checking a set in an older workout (see utils/setTiming.ts).
+// Unmarking it leaves completed_at in place rather than clearing it: history only reads sets
+// with is_complete = 1, so the leftover value is invisible there, and keeping it is what lets
+// a later re-check offer to restore the set's original time instead of stamping it with now.
+export async function markSetComplete(id: number, complete: boolean, completedAt?: string): Promise<void> {
+  if (complete) {
+    await db.runAsync(
+      `UPDATE cycle_sets SET is_complete = 1, completed_at = ? WHERE id = ?`,
+      [completedAt ?? new Date().toISOString(), id],
+    );
+  } else {
+    await db.runAsync(`UPDATE cycle_sets SET is_complete = 0 WHERE id = ?`, [id]);
+  }
 }
 
 export async function deleteSet(id: number): Promise<void> {

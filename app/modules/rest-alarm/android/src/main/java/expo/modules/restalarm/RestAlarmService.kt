@@ -39,6 +39,7 @@ class RestAlarmService : Service() {
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     val soundEnabled = intent?.getBooleanExtra(RestAlarmReceiver.EXTRA_SOUND_ENABLED, true) ?: true
+    val headphonesOnly = intent?.getBooleanExtra(RestAlarmReceiver.EXTRA_HEADPHONES_ONLY, false) ?: false
 
     // Explicitly clear any previous rest-complete notification before posting a new one.
     // Reusing the same NOTIFICATION_ID below should already replace-in-place rather than
@@ -68,9 +69,16 @@ class RestAlarmService : Service() {
     // from a genuine "user muted media" from this API alone, so the zero-skip below only applies
     // when we're about to fall back to the speaker; once routing to a real headset device (see
     // playSound()'s setPreferredDevice), always play — that's the entire point of routing to it.
-    val hasHeadset = findConnectedHeadsetDevice() != null
-    if (soundEnabled && (hasHeadset || !isMediaVolumeZero())) {
-      playSound()
+    //
+    // Headphones-only mode (user setting): never fall back to the speaker at all. Checked here,
+    // at fire time, so plugging in / unplugging during the rest is honored.
+    val headset = findConnectedHeadsetDevice()
+    val shouldPlay = soundEnabled && when {
+      headphonesOnly -> headset != null
+      else -> headset != null || !isMediaVolumeZero()
+    }
+    if (shouldPlay) {
+      playSound(headset, headphonesOnly)
       // Safety net: MediaPlayer's onCompletion/onError normally stop the service already:
       // this just guarantees the foreground service (and its wake-equivalent state) can't
       // linger indefinitely if something about playback never calls back.
@@ -164,12 +172,28 @@ class RestAlarmService : Service() {
     return android.R.drawable.ic_dialog_info
   }
 
-  private fun playSound() {
-    val attributes = AudioAttributes.Builder()
-      .setUsage(AudioAttributes.USAGE_ALARM)
-      .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-      .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
-      .build()
+  // `headset` is the connected headphone device found at fire time (null = none).
+  // `headphonesOnly` switches the alert from the Alarm stream to the Media stream: Android (and,
+  // as of One UI 9, apparently Samsung more aggressively) duplicates Alarm-stream audio to the
+  // built-in speaker even with headphones attached, and setPreferredDevice() is only a hint that
+  // some OEM builds ignore for alarms. Media-stream audio is never duplicated to the speaker while
+  // headphones are connected, so it's the only routing that reliably honors "headphones only".
+  // FLAG_AUDIBILITY_ENFORCED is deliberately dropped in that mode — it can force speaker output.
+  // The Alarm stream's whole reason for existing here (surviving vibrate/DND) doesn't matter with
+  // headphones in, since ringer mode/DND don't silence media.
+  private fun playSound(headset: AudioDeviceInfo?, headphonesOnly: Boolean) {
+    val attributes = if (headphonesOnly) {
+      AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+    } else {
+      AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_ALARM)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
+        .build()
+    }
 
     requestAudioFocus(attributes)
 
@@ -189,7 +213,7 @@ class RestAlarmService : Service() {
         // still wakes you if your earbuds fell out) — fine for a wake-up alarm, not what's
         // wanted for a rest timer. Pinning to the connected device with setPreferredDevice()
         // overrides that forced-speaker routing when headphones/Bluetooth are attached.
-        findConnectedHeadsetDevice()?.let { setPreferredDevice(it) }
+        headset?.let { setPreferredDevice(it) }
         prepare()
         start()
       }
@@ -204,8 +228,8 @@ class RestAlarmService : Service() {
       .firstOrNull { it.type in headsetDeviceTypes() }
   }
 
-  // Built at call time (rather than as a top-level constant) because TYPE_USB_HEADSET (API 26)
-  // and TYPE_HEARING_AID (API 28) don't exist as fields on older framework versions — resolving
+  // Built at call time (rather than as a top-level constant) because TYPE_USB_HEADSET (API 26),
+  // TYPE_HEARING_AID (API 28) and the Bluetooth LE Audio types (API 31) don't exist as fields on older framework versions — resolving
   // them unconditionally at class-init on a pre-26/28 device risks NoSuchFieldError, which is an
   // Error, not an Exception, so it wouldn't be caught by playSound()'s try/catch.
   private fun headsetDeviceTypes(): Set<Int> {
@@ -217,6 +241,12 @@ class RestAlarmService : Service() {
     )
     if (Build.VERSION.SDK_INT >= 26) types.add(AudioDeviceInfo.TYPE_USB_HEADSET)
     if (Build.VERSION.SDK_INT >= 28) types.add(AudioDeviceInfo.TYPE_HEARING_AID)
+    // LE Audio earbuds (newer Galaxy Buds, etc.) report as these rather than A2DP — without them
+    // a connected LE headset looked like "no headset" and the alert fell back to the speaker.
+    if (Build.VERSION.SDK_INT >= 31) {
+      types.add(AudioDeviceInfo.TYPE_BLE_HEADSET)
+      types.add(AudioDeviceInfo.TYPE_BLE_SPEAKER)
+    }
     return types
   }
 

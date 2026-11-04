@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (27)
+
+### feat: keep original set times when fixing older workouts
+Checking off a set in a workout from an earlier day, or 2+ hours ago, now asks whether to log it at its original time instead of the current one — previously going back to fix a mistake (uncheck, edit, re-check) restamped the set with the current time and moved it to the wrong day in exercise history. A set that was checked off before restores its exact earlier time; a set that was never checked off gets an estimate placed among that workout's other sets (between its neighbouring sets, or one typical set-gap after/before the nearest logged set — the gap being the median spacing between sets that day, falling back to rest-timer length + 60s). Cancel leaves the set unchecked; back-filling doesn't start the rest timer. A "Don't ask again for 1 hour" checkbox remembers the choice; while it's active a slim bar at the top of WorkoutScreen shows the time left with an "Ask again" button, and Settings has a matching "Editing older sets" reset row. To make restoring possible, unchecking a set no longer clears `completed_at` — history already filters on `is_complete = 1`, so the leftover value never shows up there. Estimation logic lives in the pure `src/utils/setTiming.ts`.
+
+---
+
 ## 2026-08-04 (26)
 
 ### fix: renamed 24 seed exercises with outdated/obscure names

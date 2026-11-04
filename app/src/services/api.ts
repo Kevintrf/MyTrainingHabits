@@ -53,8 +53,9 @@ export interface CycleSet {
   reps: number | null;
   weight_kg: number | null;
   is_complete: boolean;
-  // When this set was last marked complete. Null while incomplete — cleared (not just
-  // left stale) if the set is unmarked, so it always reflects the current state.
+  // When this set was last marked complete. Null if it never has been. Deliberately kept
+  // after the set is unmarked, so re-checking it can offer to restore that original time —
+  // only meaningful together with is_complete (history filters on is_complete = 1).
   completed_at: string | null;
 }
 

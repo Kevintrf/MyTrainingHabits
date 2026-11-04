@@ -206,4 +206,4 @@ Each individual logged set within a cycle workout. Pre-seeded blank (null reps/w
 | reps             | int   | nullable                                      |
 | weight_kg        | float | nullable                                      |
 | is_complete      | int   | 0 or 1; checked off individually              |
-| completed_at     | text  | nullable timestamp; set when `is_complete` becomes 1, cleared (not left stale) if unmarked — always reflects current state. This is the data behind ExerciseHistoryScreen. |
+| completed_at     | text  | nullable timestamp; set when `is_complete` becomes 1 (now, or the set's original/estimated earlier time when back-filling an older workout). Deliberately **kept** if the set is unmarked, so a later re-check can restore it — only meaningful together with `is_complete = 1`, which is what ExerciseHistoryScreen filters on. |

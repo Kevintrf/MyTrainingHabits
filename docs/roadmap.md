@@ -51,6 +51,7 @@ Goal: Make logging fast enough that users actually want to use it daily.
 - [x] Create custom exercise — form with name, primary muscle group, and type (strength/cardio/bodyweight)
 - [x] Edit sets inline on WorkoutScreen (reps/weight) — delete-set UI not yet built (sets can only be added, not removed, from the workout screen)
 - [x] Per-exercise history — ExerciseHistoryScreen shows every completed set for an exercise across all cycles, grouped by day, most recent first (`cycle_sets.completed_at`, stamped when a set is checked off)
+- [x] Back-dating older sets — checking off a set in a workout from an earlier day / 2+ hours ago asks whether to keep its original (or estimated) time so it stays on the right day in history; "Don't ask again for 1 hour" with an undo toast + Settings reset
 
 **Milestone:** User can log a typical training day in under 2 minutes. App feels fast.
 

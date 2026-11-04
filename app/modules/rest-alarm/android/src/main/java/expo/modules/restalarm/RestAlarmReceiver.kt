@@ -22,13 +22,16 @@ import androidx.core.content.ContextCompat
 class RestAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val soundEnabled = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
+    val headphonesOnly = intent.getBooleanExtra(EXTRA_HEADPHONES_ONLY, false)
     val serviceIntent = Intent(context, RestAlarmService::class.java).apply {
       putExtra(EXTRA_SOUND_ENABLED, soundEnabled)
+      putExtra(EXTRA_HEADPHONES_ONLY, headphonesOnly)
     }
     ContextCompat.startForegroundService(context, serviceIntent)
   }
 
   companion object {
     const val EXTRA_SOUND_ENABLED = "soundEnabled"
+    const val EXTRA_HEADPHONES_ONLY = "headphonesOnly"
   }
 }

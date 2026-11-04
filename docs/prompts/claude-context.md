@@ -77,7 +77,7 @@ app/
       exercises.ts        exercise library CRUD + recent/search
       program.ts           CRUD for program workouts + program-exercises (the repeating template)
       cycles.ts             get/create active cycle, start a new cycle, mark workout complete
-      sets.ts                add/update/delete cycle_sets, mark/unmark complete (stamps completed_at),
+      sets.ts                add/update/delete cycle_sets, mark/unmark complete (stamps completed_at; kept on unmark),
                               progression lookup, getExerciseHistory()
       settings.ts             user_settings CRUD (`rest_timer_enabled`, `rest_timer_seconds`,
                                `rest_timer_sound_enabled`)

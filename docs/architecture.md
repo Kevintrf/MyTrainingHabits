@@ -24,7 +24,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | ExerciseHistoryScreen     | Every completed set ever logged for one exercise, grouped by day, most recent first (reachable from ExerciseDetailScreen or the history icon on WorkoutScreen) |
 | ProgramScreen             | The repeating program — ordered list of workouts, tap to edit             |
 | EditProgramWorkoutScreen  | Edit a program workout's label and its exercises/default targets; long-press an exercise to add/edit a short note on its inclusion in this workout |
-| SettingsScreen            | Rest timer on/off toggle (default on), duration (minutes + seconds inputs), and play-sound toggle (default on) |
+| SettingsScreen            | Rest timer on/off toggle (default on), duration (minutes + seconds inputs), and play-sound toggle (default on); "Editing older sets" status row with an "Ask again" reset for an active "Don't ask again for 1 hour" choice (see Back-dating Sets below) |
 
 ### State Management
 
@@ -71,7 +71,8 @@ db/sets.ts
   getSetsForCycleWorkout(cycleWorkoutId)
   addSet(cycleWorkoutId, exerciseId, reps, weight_kg)
   updateSet(id, patch)
-  markSetComplete(id, done)           Also stamps/clears completed_at
+  markSetComplete(id, done, at?)      Stamps completed_at (now, or an explicit earlier time);
+                                       unmarking keeps completed_at so it can be restored later
   deleteSet(id)
   getLastSetsForExercise(exerciseId)   Last logged sets (for progression display)
   getExerciseHistory(exerciseId)       Every completed set ever, most recent first (ExerciseHistoryScreen)
@@ -157,6 +158,20 @@ Each unlogged set's reps/weight fields show a suggestion via `placeholder` (grey
 - **Weight** — the weight logged last time this exercise was done (`lastSet.weight_kg`, from `getLastSetsForExercise`, matched positionally by set index — set #1 suggests from last time's set #1, etc.). Not from `program_exercises.default_weight_kg`, which exists in the schema but has no UI to set it and nothing writes to it — effectively vestigial; don't be misled by it into thinking weight pre-fill comes from there.
 
 **Marking a set complete with a field left blank takes on the shown suggestion as the real saved value** (`SetRow.handleToggle` in `WorkoutScreen.tsx`) — un-marking a set never does this, and a field the user already typed into is left exactly as entered, whether that's a plain number or something that overrides the suggestion. This is why the state seeding on mount deliberately only reads `set.reps`/`set.weight_kg` (the actually-saved value), never the suggestion — keeping "shown as a hint" and "committed to the database" as two clearly separate states until the user (or a completed checkbox) merges them.
+
+## Back-dating Sets in Older Workouts (WorkoutScreen)
+
+Checking off a set stamps `cycle_sets.completed_at`, which is what ExerciseHistoryScreen groups by day. Going back to fix a mistake in an older workout (uncheck → edit → re-check, or checking a set that was missed) would otherwise stamp it with the current time and move it to the wrong day in history. So when a set is checked off, `suggestCompletionTime()` (`src/utils/setTiming.ts`, pure) decides whether to ask:
+
+- **Set was checked off before** (then unchecked): if that earlier `completed_at` is on a previous calendar day or 2+ hours ago, offer to **keep the original time**. This only works because `markSetComplete(id, false)` now leaves `completed_at` in place instead of clearing it — history filters on `is_complete = 1`, so the leftover value is invisible until it's either restored or overwritten.
+- **Set was never checked off**: if the workout's latest completed set is on a previous day or 2+ hours ago, offer an **estimated time**: midpoint of the neighbouring completed sets of the same exercise, or one "gap" after the previous / before the next one; failing that, one gap after the nearest earlier exercise's last set (or before the nearest later exercise's first set). The gap is the median spacing between consecutive sets in that workout (ignoring gaps > 20 min), falling back to rest-timer duration + 60s. Never later than now.
+- Otherwise (recent, or nothing logged in the workout yet) there's no prompt — current time, as before.
+
+The prompt (`SetTimePromptContext`, a `Modal` mounted in `App.tsx`) offers original/estimated time, current time, or Cancel (set stays unchecked; nothing else is touched). Choosing the earlier time doesn't start the rest timer. Editing reps/weight on an already-completed set never prompts — that has never touched `completed_at`.
+
+**"Don't ask again for 1 hour"** checkbox remembers the choice (`original` or `now`) in context state — in memory only, so an app restart simply means asking again. While active, `SetTimeChoiceToast` shows a slim bar at the top of WorkoutScreen with the time left and an "Ask again" button, and SettingsScreen's "Editing older sets" row offers the same reset.
+
+## Rest Timer
 
 Started automatically whenever a set is checked off in WorkoutScreen (not when un-marking one). Three independent pieces, all driven from `AppContext`:
 

@@ -14,10 +14,14 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { useSetTimePrompt } from '../context/SetTimePromptContext';
+import SetTimeChoiceToast from '../components/SetTimeChoiceToast';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail } from '../db/cycles';
 import { addSet, getLastSetsForExercise, markSetComplete, updateSet } from '../db/sets';
 import { updateProgramExercise } from '../db/program';
+import { getSettings } from '../db/settings';
+import { suggestCompletionTime } from '../utils/setTiming';
 import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise } from '../services/api';
 
 // Stable per-exercise key within a workout — falls back to name when the source
@@ -26,13 +30,18 @@ function exerciseKey(exercise: CycleWorkoutExercise): string {
   return exercise.exercise_id !== null ? String(exercise.exercise_id) : `deleted:${exercise.exercise_name}`;
 }
 
-function SetRow({ set, lastSet, defaultReps, onToggled }: {
+// The time to stamp on a set being checked off: { at, backdated } — or null if the user
+// cancelled the "which time?" prompt and the set should stay unchecked.
+type ResolveCompletedAt = (set: CycleSet) => Promise<{ at: string; backdated: boolean } | null>;
+
+function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   set: CycleSet;
   lastSet?: CycleSet;
   // The program's target rep count for this exercise — shown as a grey placeholder
   // suggestion, not preloaded as a real value (see below).
   defaultReps: number | null;
   onToggled: () => void;
+  resolveCompletedAt: ResolveCompletedAt;
 }) {
   // Seeded only from the set's own saved value, never from a suggestion — a suggestion
   // (the program's default reps, or the weight last used for this exercise) is shown via
@@ -61,8 +70,18 @@ function SetRow({ set, lastSet, defaultReps, onToggled }: {
   }
 
   async function handleToggle() {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     const nowComplete = !set.is_complete;
+
+    // Checking off a set in an older workout may prompt for which time to log it at. Asked
+    // before touching anything else, so cancelling leaves the set exactly as it was (any
+    // still-pending debounced reps/weight save is left to run as normal).
+    let completion: { at: string; backdated: boolean } | null = null;
+    if (nowComplete) {
+      completion = await resolveCompletedAt(set);
+      if (!completion) return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     // Finishing a set that was left blank takes on the shown grey suggestion rather than
     // saving nothing — un-marking a set never does this, only completing one, and a field
@@ -73,9 +92,10 @@ function SetRow({ set, lastSet, defaultReps, onToggled }: {
     if (finalWeight !== weight) setWeight(finalWeight);
 
     await updateSet(set.id, parsedPatch(finalReps, finalWeight));
-    await markSetComplete(set.id, nowComplete);
-    // Only starts the rest timer when finishing a set, not when un-marking one.
-    if (nowComplete) startRestTimer();
+    await markSetComplete(set.id, nowComplete, completion?.at);
+    // Only starts the rest timer when finishing a set live — not when un-marking one, and not
+    // when back-filling a set into its original (earlier) time.
+    if (completion && !completion.backdated) startRestTimer();
     onToggled();
   }
 
@@ -111,10 +131,11 @@ function SetRow({ set, lastSet, defaultReps, onToggled }: {
   );
 }
 
-function ExerciseCard({ exercise, lastSets, onChanged }: {
+function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
   exercise: CycleWorkoutExercise;
   lastSets: CycleSet[];
   onChanged: () => void;
+  resolveCompletedAt: ResolveCompletedAt;
 }) {
   const navigation = useNavigation<NativeStackNavigationProp<CycleStackParamList>>();
   const [expanded, setExpanded] = useState(false);
@@ -206,6 +227,7 @@ function ExerciseCard({ exercise, lastSets, onChanged }: {
               lastSet={lastSets[i]}
               defaultReps={exercise.program_exercise_default_reps}
               onToggled={onChanged}
+              resolveCompletedAt={resolveCompletedAt}
             />
           ))}
           {exerciseId !== null && (
@@ -224,6 +246,7 @@ export default function WorkoutScreen() {
   const route = useRoute<RouteProp<CycleStackParamList, 'Workout'>>();
   const { cycleWorkoutId } = route.params;
   const { refreshCycle } = useApp();
+  const { chooseSetTime } = useSetTimePrompt();
 
   const [detail, setDetail] = useState<CycleWorkoutDetail | null>(null);
   const [lastSets, setLastSets] = useState<Record<string, CycleSet[]>>({});
@@ -252,10 +275,27 @@ export default function WorkoutScreen() {
     await refreshCycle();
   }, [load, refreshCycle]);
 
+  const resolveCompletedAt = useCallback<ResolveCompletedAt>(async (set) => {
+    const now = new Date();
+    const settings = await getSettings();
+    // Fallback pace when the workout has no consecutive sets to measure: one rest period
+    // plus roughly a minute for the set itself.
+    const fallbackGapMs = (settings.rest_timer_seconds + 60) * 1000;
+    const suggestion = suggestCompletionTime(set, detail?.exercises ?? [], fallbackGapMs, now);
+    if (!suggestion) return { at: now.toISOString(), backdated: false };
+
+    const choice = await chooseSetTime(suggestion);
+    if (choice === null) return null;
+    return choice === 'original'
+      ? { at: suggestion.at, backdated: true }
+      : { at: new Date().toISOString(), backdated: false };
+  }, [detail, chooseSetTime]);
+
   if (loading || !detail) return <ActivityIndicator style={styles.loader} color="#2D6A4F" />;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SetTimeChoiceToast />
       <ScrollView contentContainerStyle={styles.content}>
         {detail.exercises.length === 0 ? (
           <Text style={styles.empty}>This workout has no exercises. Add some in the Program tab.</Text>
@@ -266,6 +306,7 @@ export default function WorkoutScreen() {
               exercise={ex}
               lastSets={lastSets[exerciseKey(ex)] ?? []}
               onChanged={handleChanged}
+              resolveCompletedAt={resolveCompletedAt}
             />
           ))
         )}
