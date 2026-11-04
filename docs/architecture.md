@@ -17,7 +17,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | Screen                    | Purpose                                                                |
 |---------------------------|--------------------------------------------------------------------------|
 | CycleScreen               | Main view — active cycle's workouts with done-checkboxes; "New Cycle" button |
-| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the program's target reps / last-used weight as a grey placeholder, see below); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
+| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the exercise's latest logged reps/weight (program target reps if no history) as a grey placeholder, see below); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
 | ExercisesScreen           | Browse and search the exercise library; muscle-group filter chips plus a CUSTOM chip (right after ALL) for user-created exercises only |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
 | ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in free-exercise-db library, not custom exercises); links to ExerciseHistoryScreen |
@@ -74,7 +74,7 @@ db/sets.ts
   markSetComplete(id, done, at?)      Stamps completed_at (now, or an explicit earlier time);
                                        unmarking keeps completed_at so it can be restored later
   deleteSet(id)
-  getLastSetsForExercise(exerciseId)   Last logged sets (for progression display)
+  getLastSetsForExercise(exerciseId, excludeCycleWorkoutId)   Latest logged sets, any day (set suggestions)
   getExerciseHistory(exerciseId)       Every completed set ever, most recent first (ExerciseHistoryScreen)
 
 db/program.ts
@@ -153,10 +153,11 @@ Kept deliberately minimal per how it was asked for: no note means no extra UI at
 
 ## Set Logging Pre-fill (WorkoutScreen)
 
-Each unlogged set's reps/weight fields show a suggestion via `placeholder` (grey, `#bbb`) rather than preloading it into the real `value` — visually distinct from something actually entered, and doesn't get silently saved just because the field was rendered. Two independent sources:
+Each unlogged set's reps/weight fields show a suggestion via `placeholder` (grey, `#bbb`) rather than preloading it into the real `value` — visually distinct from something actually entered, and doesn't get silently saved just because the field was rendered. The suggestion is **the same on every day the exercise appears**: the latest logged result for that exercise, regardless of which program workout or cycle it came from.
 
-- **Reps** — the program's `default_reps` for this exercise (`CycleWorkoutExercise.program_exercise_default_reps`, via the same `program_exercises` join `getCycleWorkoutDetail` already does for ordering/notes).
-- **Weight** — the weight logged last time this exercise was done (`lastSet.weight_kg`, from `getLastSetsForExercise`, matched positionally by set index — set #1 suggests from last time's set #1, etc.). Not from `program_exercises.default_weight_kg`, which exists in the schema but has no UI to set it and nothing writes to it — effectively vestigial; don't be misled by it into thinking weight pre-fill comes from there.
+- **Source** — `getLastSetsForExercise(exerciseId, currentCycleWorkoutId)`: the completed sets from the workout holding this exercise's most recently completed set (latest `completed_at`, any cycle including the active one), excluding the workout being viewed so checking off its own sets doesn't shift the suggestions for the rest. Matched positionally by set index — set #1 suggests from last time's set #1, etc.; sets beyond last time's count reuse its final set.
+- **Reps** — `lastSet.reps`, falling back to the program's `default_reps` for this exercise (`CycleWorkoutExercise.program_exercise_default_reps`) only when there's no history yet. `default_reps` is per program workout, so it's no longer the primary source — it would make the same exercise suggest different reps on different days.
+- **Weight** — `lastSet.weight_kg`. Not from `program_exercises.default_weight_kg`, which exists in the schema but has no UI to set it and nothing writes to it — effectively vestigial; don't be misled by it into thinking weight pre-fill comes from there.
 
 **Marking a set complete with a field left blank takes on the shown suggestion as the real saved value** (`SetRow.handleToggle` in `WorkoutScreen.tsx`) — un-marking a set never does this, and a field the user already typed into is left exactly as entered, whether that's a plain number or something that overrides the suggestion. This is why the state seeding on mount deliberately only reads `set.reps`/`set.weight_kg` (the actually-saved value), never the suggestion — keeping "shown as a hint" and "committed to the database" as two clearly separate states until the user (or a completed checkbox) merges them.
 

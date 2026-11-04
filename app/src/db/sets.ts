@@ -89,24 +89,28 @@ export async function deleteSet(id: number): Promise<void> {
   await db.runAsync('DELETE FROM cycle_sets WHERE id = ?', [id]);
 }
 
-// The most recently logged sets for this exercise, from the last finished cycle
-// that included it — used to pre-fill values for progression.
-export async function getLastSetsForExercise(exerciseId: number): Promise<CycleSet[]> {
+// The sets from the most recent workout (any day, any cycle — including the active one)
+// where this exercise was logged, used as the reps/weight suggestion on every day the
+// exercise appears. "Most recent" = latest completed_at; only completed sets count, and the
+// workout being viewed is excluded so checking off its own sets doesn't shift the suggestions
+// for the rest of them.
+export async function getLastSetsForExercise(exerciseId: number, excludeCycleWorkoutId: number): Promise<CycleSet[]> {
   const lastWorkout = await db.getFirstAsync<{ cycle_workout_id: number }>(
-    `SELECT cs.cycle_workout_id
-     FROM cycle_sets cs
-     JOIN cycle_workouts cw ON cw.id = cs.cycle_workout_id
-     JOIN cycles c ON c.id = cw.cycle_id
-     WHERE cs.exercise_id = ? AND c.is_active = 0
-       AND (cs.reps IS NOT NULL OR cs.weight_kg IS NOT NULL)
-     ORDER BY c.started_at DESC, cs.id DESC
+    `SELECT cycle_workout_id
+     FROM cycle_sets
+     WHERE exercise_id = ? AND cycle_workout_id != ?
+       AND is_complete = 1 AND completed_at IS NOT NULL
+       AND (reps IS NOT NULL OR weight_kg IS NOT NULL)
+     ORDER BY completed_at DESC, id DESC
      LIMIT 1`,
-    [exerciseId],
+    [exerciseId, excludeCycleWorkoutId],
   );
   if (!lastWorkout) return [];
 
   const rows = await db.getAllAsync<SetRow>(
-    `SELECT ${SET_COLUMNS} FROM cycle_sets WHERE cycle_workout_id = ? AND exercise_id = ? ORDER BY set_number`,
+    `SELECT ${SET_COLUMNS} FROM cycle_sets
+     WHERE cycle_workout_id = ? AND exercise_id = ? AND is_complete = 1
+     ORDER BY set_number`,
     [lastWorkout.cycle_workout_id, exerciseId],
   );
   return rows.map(mapSet);

@@ -37,14 +37,14 @@ type ResolveCompletedAt = (set: CycleSet) => Promise<{ at: string; backdated: bo
 function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   set: CycleSet;
   lastSet?: CycleSet;
-  // The program's target rep count for this exercise — shown as a grey placeholder
-  // suggestion, not preloaded as a real value (see below).
+  // The program's target rep count for this exercise — the reps suggestion only when
+  // there's no previous result to suggest from (see below).
   defaultReps: number | null;
   onToggled: () => void;
   resolveCompletedAt: ResolveCompletedAt;
 }) {
   // Seeded only from the set's own saved value, never from a suggestion — a suggestion
-  // (the program's default reps, or the weight last used for this exercise) is shown via
+  // (the reps/weight last logged for this exercise, else the program's default reps) is shown via
   // `placeholder` instead, so it reads as grey/suggested rather than indistinguishable from
   // something actually entered.
   const [reps, setReps] = useState(set.reps != null ? String(set.reps) : '');
@@ -52,8 +52,12 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { startRestTimer } = useApp();
 
-  const repsPlaceholder = defaultReps != null ? String(defaultReps) : 'reps';
-  const weightPlaceholder = lastSet?.weight_kg != null ? String(lastSet.weight_kg) : 'kg';
+  // Same on every day the exercise appears: the latest logged result wins over the day's
+  // program target, which is only a fallback for an exercise with no history yet.
+  const suggestedReps = lastSet?.reps ?? defaultReps;
+  const suggestedWeight = lastSet?.weight_kg ?? null;
+  const repsPlaceholder = suggestedReps != null ? String(suggestedReps) : 'reps';
+  const weightPlaceholder = suggestedWeight != null ? String(suggestedWeight) : 'kg';
 
   function parsedPatch(r: string, w: string) {
     const repsNum = parseInt(r, 10);
@@ -86,8 +90,8 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
     // Finishing a set that was left blank takes on the shown grey suggestion rather than
     // saving nothing — un-marking a set never does this, only completing one, and a field
     // the user already typed something into is left exactly as entered.
-    const finalReps = nowComplete && reps === '' && defaultReps != null ? String(defaultReps) : reps;
-    const finalWeight = nowComplete && weight === '' && lastSet?.weight_kg != null ? String(lastSet.weight_kg) : weight;
+    const finalReps = nowComplete && reps === '' && suggestedReps != null ? String(suggestedReps) : reps;
+    const finalWeight = nowComplete && weight === '' && suggestedWeight != null ? String(suggestedWeight) : weight;
     if (finalReps !== reps) setReps(finalReps);
     if (finalWeight !== weight) setWeight(finalWeight);
 
@@ -225,7 +229,9 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
             <SetRow
               key={s.id}
               set={s}
-              lastSet={lastSets[i]}
+              // Positional (set #1 ← last time's set #1); sets beyond last time's count
+              // reuse its final set rather than showing no suggestion.
+              lastSet={lastSets[i] ?? lastSets[lastSets.length - 1]}
               defaultReps={exercise.program_exercise_default_reps}
               onToggled={onChanged}
               resolveCompletedAt={resolveCompletedAt}
@@ -260,7 +266,7 @@ export default function WorkoutScreen() {
     // Deleted exercises (exercise_id null) have no "current" exercise to look up
     // progression for — and can't be re-added anyway, so skip the lookup.
     const entries = await Promise.all(
-      d.exercises.map((e) => (e.exercise_id !== null ? getLastSetsForExercise(e.exercise_id) : Promise.resolve([]))),
+      d.exercises.map((e) => (e.exercise_id !== null ? getLastSetsForExercise(e.exercise_id, cycleWorkoutId) : Promise.resolve([]))),
     );
     const map: Record<string, CycleSet[]> = {};
     d.exercises.forEach((e, i) => { map[exerciseKey(e)] = entries[i]; });

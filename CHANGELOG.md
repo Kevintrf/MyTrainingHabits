@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (30)
+
+### feat: set suggestions show the latest result on every day
+The grey reps/weight suggestions on unlogged sets could differ for the same exercise depending on the day: reps came from that day's program target, and weight from the last *finished* cycle only — so doing an exercise on Day 1 didn't update its suggestion on Day 3 of the same cycle. Both now come from the most recent completed result for the exercise, from any day or cycle (including the active one), so every day shows the same values. The program's target reps are only used when the exercise has no history yet. The workout being viewed is excluded, so checking off its sets doesn't change the suggestions for its remaining ones. Sets beyond the number done last time reuse last time's final set instead of showing no suggestion. `getLastSetsForExercise` now takes the current cycle workout id to exclude and orders by `completed_at`.
+
+---
+
 ## 2026-11-04 (29)
 
 ### feat: exercise notes shared across every day
