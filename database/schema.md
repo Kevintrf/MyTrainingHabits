@@ -126,10 +126,12 @@ The exercise library. Includes both built-in seed exercises and user-created one
 | level         | text      | nullable; `beginner`, `intermediate`, or `expert` — null for user-created exercises |
 | category      | text      | nullable; free-exercise-db's category (`strength`, `stretching`, `cardio`, `powerlifting`, `olympic weightlifting`, `strongman`, `plyometrics`) — richer than `type`, null for user-created exercises |
 | instructions  | text      | nullable; step-by-step guide, one step per line — null for user-created exercises |
-| source_slug   | text      | nullable; free-exercise-db's id (e.g. `Barbell_Squat`), used as the key into the bundled image manifest (`src/assets/exerciseImages.ts`) — null for user-created exercises |
+| source_slug   | text      | nullable; free-exercise-db's id (e.g. `Barbell_Squat`), or an `MTH_`-prefixed id for the curated additions (`scripts/extra-exercises.json`), used as the key into the bundled image manifest (`src/assets/exerciseImages.ts`) — null for user-created exercises |
 | created_at    | timestamp |                                                     |
 
-**Exercise library import:** `SEED`-sourced exercises are bulk-imported from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (873 exercises, public domain) rather than hand-seeded — see `scripts/import-free-exercise-db.py`. Images can't be stored in SQLite as bundled local assets (Metro requires static `require()` calls); they're copied into `app/assets/exercises/<slug>/` and looked up via the generated `EXERCISE_IMAGES` manifest keyed by `source_slug`, not through the database.
+**Exercise library import:** `SEED`-sourced exercises are bulk-imported from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (873 exercises, public domain) plus 12 hand-curated additions (`scripts/extra-exercises.json`) rather than hand-seeded — see `scripts/import-free-exercise-db.py`. Images can't be stored in SQLite as bundled local assets (Metro requires static `require()` calls); they're copied into `app/assets/exercises/<slug>/` (curated additions: `app/assets/exercises-extra/<slug>/`) and looked up via the generated `EXERCISE_IMAGES` manifest keyed by `source_slug`, not through the database.
+
+**Custom exercises promoted to the library:** the curated additions replace custom exercises made on the phone. On launch, a `USER` exercise whose name matches one a curated entry replaces is converted into that `SEED` entry in place, keeping its `id`, so `program_exercises`, `cycle_sets` and its notes stay attached (`promoteCustomExercises()` in `schema.ts`; details in `docs/architecture.md`).
 
 **For strength exercises:** sets record `reps` + `weight_kg`.
 **For cardio exercises:** sets record `duration_seconds`-equivalent via `reps` reused as seconds, or a future dedicated column (deferred — see next-steps.md).

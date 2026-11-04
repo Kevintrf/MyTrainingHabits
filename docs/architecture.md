@@ -20,7 +20,7 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the exercise's latest logged reps/weight (program target reps if no history) as a grey placeholder, see below); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
 | ExercisesScreen           | Browse and search the exercise library; muscle-group filter chips plus a CUSTOM chip (right after ALL) for user-created exercises only |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
-| ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in free-exercise-db library, not custom exercises); links to ExerciseHistoryScreen |
+| ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in library — free-exercise-db plus the curated additions — not custom exercises); links to ExerciseHistoryScreen |
 | ExerciseHistoryScreen     | Every completed set ever logged for one exercise, grouped by day, most recent first (reachable from ExerciseDetailScreen or the history icon on WorkoutScreen) |
 | ProgramScreen             | The repeating program — ordered list of workouts, tap to edit             |
 | EditProgramWorkoutScreen  | Edit a program workout's label and its exercises/default targets; long-press an exercise to add/edit a short note on its inclusion in this workout |
@@ -116,12 +116,13 @@ modules/rest-alarm/  (local native module, Android only — see Rest Timer below
 
 ## Exercise Data (free-exercise-db import)
 
-The built-in exercise library (873 exercises, `source = 'SEED'`) is bulk-imported from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain), not hand-seeded. Regenerating it (e.g. after an upstream dataset update) is a one-time offline step, not something that happens on-device:
+The built-in exercise library (885 exercises, `source = 'SEED'`) is bulk-imported from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (873 exercises, public domain) plus 12 hand-curated additions (see below), not hand-seeded. Regenerating it (e.g. after an upstream dataset update) is a one-time offline step, not something that happens on-device:
 
 ```text
 scripts/import-free-exercise-db.py
   Reads free-exercise-db/dist/exercises.json (expects the free-exercise-db repo
-  checked out as a sibling of app/), and generates:
+  checked out as a sibling of app/) and the curated additions in
+  scripts/extra-exercises.json (validated, appended last), and generates:
     - app/src/db/seedExercisesData.ts   structured exercise data, imported by
                                          db/schema.ts's seedExercises()
     - app/assets/exercises/<slug>/*.jpg copied exercise images (~98MB, 1,746 files)
@@ -135,7 +136,16 @@ scripts/import-free-exercise-db.py
                                          large fixed set of local images.
 ```
 
-`db/schema.ts`'s `seedExercises()` deletes the old placeholder library (identified by `source = 'SEED' AND source_slug IS NULL` — every real import row always has a `source_slug`) and bulk-inserts from `SEED_EXERCISES_FULL`, guarded by a row-count check so the ~873-row insert loop only runs once, not on every app launch. User-created custom exercises (`source = 'USER'`) are never touched by this.
+`db/schema.ts`'s `seedExercises()` deletes the old placeholder library (identified by `source = 'SEED' AND source_slug IS NULL` — every real import row always has a `source_slug`) and bulk-inserts from `SEED_EXERCISES_FULL`, guarded by a row-count check so the ~885-row insert loop only runs once, not on every app launch. User-created custom exercises (`source = 'USER'`) are never touched by this — apart from the ones a curated addition replaces, below.
+
+### Curated additions (former custom exercises)
+
+`scripts/extra-exercises.json` holds library entries free-exercise-db doesn't have: the 12 custom exercises created on the phone, made into real library exercises on 2026-11-04. Each entry has a `MTH_`-prefixed slug (so it can't collide with a future upstream id), the usual fields with `instructions` as a list of steps, `images` (paths under `app/assets/`: new images in `exercises-extra/<slug>/`, or free-exercise-db photos reused by path), provenance (`image_sources`, `sources`), and `replaces_custom`, the custom exercise names it replaces. The import script checks each entry (unique slug and name, valid enums, images exist) and appends it to `seedExercisesData.ts` (with `replaces_custom`) and the image manifest. It never touches `exercises-extra/`. To change a curated exercise, edit the JSON and re-run the script.
+
+- **Images** come from StrengthLog's demo videos (start and end frames) and stills, Muscle & Strength, and free-exercise-db's own bodybuilding.com photos where those already show the exact exercise or a machine variant. ExerciseDetailScreen shows images in a 3:2 box with `resizeMode="cover"`, so square sources were fitted whole into 1200×800 with a blurred, darkened copy of the photo filling the sides. Cropping them would have cut off heads and feet. For exercises that offer a choice ("Machine or Seated Cable Lateral Raise" etc.), there's a start/end pair per option and the guide has a setup step per option. No reputable source had photos of the *seated* cable lateral raise, so the guide says the photos show the standing version.
+- **Promotion on device:** `promoteCustomExercises()` (`db/schema.ts`) runs before `seedExercises()`. It turns a custom exercise whose name matches a `replaces_custom` entry (ignoring case and surrounding whitespace, via `db/curatedExercises.ts`) into that library entry **in place**. The row keeps its id, so its `program_exercises` rows, every `cycle_sets` row and its notes/short note stay attached. Only `source` (→ `SEED`), `source_slug`, the name and the description fields change. A name change also updates the `cycle_sets.exercise_name` copies that still carry the old name, because WorkoutScreen shows that copy. The ordering matters: if seeding ran first, the entry would be inserted as a second row. Every launch also re-applies each curated entry's name and fields, so JSON edits reach installs that already have the entry. `seedExercises()`'s insert skips slugs that already exist, in case a promoted exercise had to keep its old name (the curated name already taken).
+- **Backups:** `importBackup()` maps a backup's custom exercise with a replaced name onto the local library entry the same way: notes are restored onto it and set name copies are renamed. Restoring a backup made before the promotion therefore ends in the same state as the in-place upgrade instead of bringing the custom exercises back as duplicates (or as "Name (custom)").
+- **Promoted in place, not merged** into a similar free-exercise-db entry (e.g. "Dumbbell Lateral Raise" vs. upstream "Side Lateral Raise", "Incline DB Curl" vs. "Incline Dumbbell Curl"). This keeps the user's own exercise names and history exactly as they were. The cost is a few near-duplicate exercises in the library.
 
 ## Program Exercise Notes
 
@@ -239,4 +249,4 @@ Implementation notes for anyone touching this module:
 
 ## Deployment
 
-Not applicable for the current offline-first architecture. The app installs and runs entirely from the APK/IPA with no external dependencies. Note the exercise images add ~98MB to the installed app size — a deliberate tradeoff, see `docs/decisions/exercise-image-bundling.md`.
+Not applicable for the current offline-first architecture. The app installs and runs entirely from the APK/IPA with no external dependencies. Note the exercise images add ~100MB to the installed app size (~98MB free-exercise-db, ~3.5MB curated additions) — a deliberate tradeoff, see `docs/decisions/exercise-image-bundling.md`.

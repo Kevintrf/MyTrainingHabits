@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (33)
+
+### feat: custom exercises became library exercises with photos and guides
+The 12 custom exercises made on the phone are now built-in library exercises. Each has photos, a step-by-step guide, a proper muscle group and equipment tags, and a name in the library's Title Case (e.g. "Machine chest press" → "Machine Chest Press", "Chest supported row" → "Chest-Supported Row"). Exercises that offer a choice ("Machine or Seated Cable Lateral Raise", "Incline Machine/Smith Press", "Machine/Cable Fly", "Neutral-Grip Pulldown or Assisted Pull-Up", "Chest-Supported Row", "Seated Overhead Cable/DB Triceps Extension (Back Supported)") show photos and setup steps for each option. The guides are compiled from StrengthLog, ACE Fitness, Muscle & Strength and bodybuilding.com's exercise database. The photos come from StrengthLog's demos, Muscle & Strength, and free-exercise-db's bodybuilding.com photos, fitted into the 3:2 image box without cropping. On launch, `promoteCustomExercises()` turns each matching custom exercise (matched by name, ignoring case) into its library entry in place. It keeps the same id, so program days, every logged set and the notes stay attached, and it updates the name copies on the exercise's sets so current and past workouts show the new name. Restoring an older backup maps those custom exercises onto the library entries the same way, instead of bringing them back as duplicates. The entries live in `scripts/extra-exercises.json` (new images in `app/assets/exercises-extra/`), which `import-free-exercise-db.py` now validates and merges, so re-running the import keeps them. Tested by running the real DB code under Node against the 2026-11-04 phone backup. Upgrading in place, restoring that backup on a fresh or already-upgraded install, and exporting and re-importing all end in the same state, with every program row, cycle and logged set unchanged.
+
+---
+
 ## 2026-11-04 (32)
 
 ### feat: hint when the target reps were met at one weight

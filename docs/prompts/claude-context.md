@@ -81,7 +81,9 @@ app/
                               progression lookup, getExerciseHistory()
       settings.ts             user_settings CRUD (`rest_timer_enabled`, `rest_timer_seconds`,
                                `rest_timer_sound_enabled`, `rest_timer_headphones_only`)
-      seedExercisesData.ts    AUTO-GENERATED — 873-exercise free-exercise-db data (see scripts/)
+      seedExercisesData.ts    AUTO-GENERATED — 885-exercise library: free-exercise-db + the curated
+                               additions in scripts/extra-exercises.json (see scripts/)
+      curatedExercises.ts     curated entries that replace custom exercises (promoted on launch)
     services/
       restTimerNotifications.ts  schedule/cancel the rest-complete alert — Android delegates
                                   to modules/rest-alarm, iOS uses expo-notifications directly

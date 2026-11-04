@@ -21,7 +21,7 @@ Training is organized into **cycles**, not calendar weeks. You define a program 
 - Cycle view — see every workout in the active cycle and check them off
 - Log a workout — add sets with reps and weight for each exercise
 - Start a new cycle — archive the current one and get a fresh blank instance of the program, any time
-- Exercise library — 873 built-in exercises (via [free-exercise-db](https://github.com/yuhonas/free-exercise-db)) with images and step-by-step guides, search and pick exercises, create custom ones
+- Exercise library — 885 built-in exercises (873 via [free-exercise-db](https://github.com/yuhonas/free-exercise-db), plus 12 hand-curated former custom exercises) with images and step-by-step guides, search and pick exercises, create custom ones
 
 ### High value (post-MVP)
 

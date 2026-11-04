@@ -1,5 +1,6 @@
 import { db } from './client';
-import { SEED_EXERCISES_FULL } from './seedExercisesData';
+import { SEED_EXERCISES_FULL, SeedExerciseData } from './seedExercisesData';
+import { CURATED_EXERCISES, customNameKey } from './curatedExercises';
 
 // ---------------------------------------------------------------------------
 // Table definitions
@@ -113,8 +114,9 @@ const CREATE_INDEXES = `
 
 // ---------------------------------------------------------------------------
 // Starter exercise library — the full free-exercise-db dataset (873 exercises,
-// public domain). See scripts/import-free-exercise-db.py for how this data and
-// its accompanying image manifest (src/assets/exerciseImages.ts) are generated.
+// public domain) plus a few hand-curated additions (scripts/extra-exercises.json).
+// See scripts/import-free-exercise-db.py for how this data and its accompanying
+// image manifest (src/assets/exerciseImages.ts) are generated.
 // ---------------------------------------------------------------------------
 
 function seedExercises(): void {
@@ -130,12 +132,90 @@ function seedExercises(): void {
   )!;
   if (count >= SEED_EXERCISES_FULL.length) return;
 
+  // OR IGNORE skips names that already exist; the NOT EXISTS skips slugs that already exist
+  // under another name (a promoted custom exercise that had to keep its old name).
   for (const ex of SEED_EXERCISES_FULL) {
     db.runSync(
       `INSERT OR IGNORE INTO exercises
          (name, muscle_group, type, source, equipment, level, category, instructions, source_slug)
-       VALUES (?, ?, ?, 'SEED', ?, ?, ?, ?, ?)`,
-      [ex.name, ex.muscle_group, ex.type, ex.equipment, ex.level, ex.category, ex.instructions, ex.slug],
+       SELECT ?, ?, ?, 'SEED', ?, ?, ?, ?, ?
+       WHERE NOT EXISTS (SELECT 1 FROM exercises WHERE source_slug = ?)`,
+      [ex.name, ex.muscle_group, ex.type, ex.equipment, ex.level, ex.category, ex.instructions, ex.slug, ex.slug],
+    );
+  }
+}
+
+interface CuratedRow {
+  id: number;
+  name: string;
+  muscle_group: string;
+  type: string;
+  equipment: string | null;
+  level: string | null;
+  category: string | null;
+  instructions: string | null;
+}
+
+const CURATED_ROW_COLUMNS = 'id, name, muscle_group, type, equipment, level, category, instructions';
+
+// Custom exercises that have become library entries (see db/curatedExercises.ts). A custom
+// exercise named in a curated entry's replaces_custom is converted into that entry in place: same
+// row and id, so the program days using it, every set logged against it and its notes all stay
+// attached — only source, source_slug, name and the description fields change. Has to run before
+// seedExercises(), which would otherwise insert the entry as a second, separate exercise.
+//
+// On every launch it also re-applies each curated entry's name and description fields, so later
+// edits to scripts/extra-exercises.json reach installs that already have the entry. A no-op once
+// everything matches.
+function promoteCustomExercises(): void {
+  const customs = db.getAllSync<{ id: number; name: string }>(
+    `SELECT id, name FROM exercises WHERE source = 'USER' ORDER BY id`,
+  );
+  const loggedSets = (id: number) =>
+    db.getFirstSync<{ n: number }>('SELECT COUNT(*) AS n FROM cycle_sets WHERE exercise_id = ?', [id])!.n;
+
+  for (const entry of CURATED_EXERCISES) {
+    let row = db.getFirstSync<CuratedRow>(
+      `SELECT ${CURATED_ROW_COLUMNS} FROM exercises WHERE source_slug = ?`,
+      [entry.slug],
+    );
+    if (!row) {
+      const names = new Set(entry.replaces_custom!.map(customNameKey));
+      const matches = customs.filter((c) => names.has(customNameKey(c.name)));
+      if (!matches.length) continue; // no custom version here — seedExercises() inserts the entry
+      // Two custom exercises differing only in letter case: take over the one with more history.
+      const custom = matches.reduce((best, c) => (loggedSets(c.id) > loggedSets(best.id) ? c : best));
+      customs.splice(customs.indexOf(custom), 1);
+      db.runSync(`UPDATE exercises SET source = 'SEED', source_slug = ? WHERE id = ?`, [entry.slug, custom.id]);
+      row = db.getFirstSync<CuratedRow>(`SELECT ${CURATED_ROW_COLUMNS} FROM exercises WHERE id = ?`, [custom.id])!;
+    }
+    applyCuratedEntry(row, entry);
+  }
+}
+
+function applyCuratedEntry(row: CuratedRow, entry: SeedExerciseData): void {
+  // Leave the name alone if another exercise already has it (exercises.name is UNIQUE).
+  if (row.name !== entry.name && !db.getFirstSync('SELECT 1 FROM exercises WHERE name = ?', [entry.name])) {
+    db.runSync('UPDATE exercises SET name = ? WHERE id = ?', [entry.name, row.id]);
+    // cycle_sets.exercise_name is a copy of the name taken when each cycle was stamped (it keeps
+    // history readable if the exercise is ever deleted), and it's what WorkoutScreen shows. Update
+    // the copies that still match the old name, so the current cycle and earlier ones show the
+    // new name too, not only cycles started from now on.
+    db.runSync('UPDATE cycle_sets SET exercise_name = ? WHERE exercise_id = ? AND exercise_name = ?', [
+      entry.name,
+      row.id,
+      row.name,
+    ]);
+  }
+
+  const wanted = [entry.muscle_group, entry.type, entry.equipment, entry.level, entry.category, entry.instructions];
+  const current = [row.muscle_group, row.type, row.equipment, row.level, row.category, row.instructions];
+  if (wanted.some((value, i) => value !== current[i])) {
+    db.runSync(
+      `UPDATE exercises
+       SET muscle_group = ?, type = ?, equipment = ?, level = ?, category = ?, instructions = ?
+       WHERE id = ?`,
+      [...wanted, row.id],
     );
   }
 }
@@ -393,6 +473,7 @@ export function initSchema(): void {
     // Seed the single user_settings row on first install
     db.runSync('INSERT OR IGNORE INTO user_settings (id, schema_version) VALUES (1, 1)');
 
+    promoteCustomExercises();
     seedExercises();
     renameSeedExercises();
     migrateProgramExerciseNotes();

@@ -11,6 +11,11 @@ Expects the free-exercise-db repo checked out at ./free-exercise-db (sibling of 
 Regenerate this way whenever the source dataset is updated — it's idempotent, safe to
 re-run, and always overwrites its own generated output files.
 
+Also merges in the hand-curated additions from scripts/extra-exercises.json (exercises
+free-exercise-db doesn't have, e.g. former custom exercises), appended after the upstream
+data. Their images live in app/assets/exercises-extra/, which this script never touches,
+or reuse free-exercise-db images by path. Edit that JSON and re-run to change them.
+
 Produces:
   - app/src/db/seedExercisesData.ts   structured exercise data (name, muscle group,
                                        type, equipment, level, category, instructions)
@@ -28,11 +33,17 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE_DIR = ROOT / "free-exercise-db"
 SOURCE_JSON = SOURCE_DIR / "dist" / "exercises.json"
 SOURCE_IMAGES = SOURCE_DIR / "exercises"
+EXTRA_JSON = ROOT / "scripts" / "extra-exercises.json"
 
 APP_DIR = ROOT / "app"
+ASSETS_DIR = APP_DIR / "assets"
 DATA_OUT = APP_DIR / "src" / "db" / "seedExercisesData.ts"
-IMAGES_OUT_DIR = APP_DIR / "assets" / "exercises"
+IMAGES_OUT_DIR = ASSETS_DIR / "exercises"
 MANIFEST_OUT = APP_DIR / "src" / "assets" / "exerciseImages.ts"
+
+# This app's enums (exercises.muscle_group / exercises.type CHECK constraints in schema.ts)
+MUSCLE_GROUPS = {"CHEST", "BACK", "LEGS", "SHOULDERS", "ARMS", "CORE", "CARDIO", "OTHER"}
+EXERCISE_TYPES = {"STRENGTH", "CARDIO", "BODYWEIGHT"}
 
 # Renames applied on top of the raw free-exercise-db name for entries whose upstream name is
 # outdated/obscure jargon (old "-SMR" self-myofascial-release naming, old bodybuilding-forum
@@ -113,6 +124,41 @@ def ts_string_or_null(value):
     return "null" if value is None else ts_string(value)
 
 
+def ts_string_list(values):
+    return "[" + ", ".join(ts_string(v) for v in values) + "]"
+
+
+def load_extras(taken_slugs, taken_names):
+    """Loads and sanity-checks scripts/extra-exercises.json. Run after the upstream images are
+    copied, since curated entries may reuse those by path."""
+    extras = json.loads(EXTRA_JSON.read_text())["exercises"]
+    taken_slugs = set(taken_slugs)
+    taken_names = {n.lower() for n in taken_names}
+    replaced = set()  # custom names are matched case-insensitively on the phone
+    for ex in extras:
+        problems = []
+        if ex["slug"] in taken_slugs:
+            problems.append("slug already used")
+        if ex["name"].lower() in taken_names:
+            problems.append("name already used (exercises.name is UNIQUE)")
+        for custom in ex.get("replaces_custom") or []:
+            if custom.strip().lower() in replaced:
+                problems.append(f"custom name {custom!r} already replaced by another entry")
+            replaced.add(custom.strip().lower())
+        if ex["muscle_group"] not in MUSCLE_GROUPS:
+            problems.append(f"unknown muscle_group {ex['muscle_group']!r}")
+        if ex["type"] not in EXERCISE_TYPES:
+            problems.append(f"unknown type {ex['type']!r}")
+        if not ex.get("instructions"):
+            problems.append("no instructions")
+        problems += [f"missing image {rel}" for rel in ex["images"] if not (ASSETS_DIR / rel).is_file()]
+        if problems:
+            raise SystemExit(f"{EXTRA_JSON.name}: {ex['slug']}: " + "; ".join(problems))
+        taken_slugs.add(ex["slug"])
+        taken_names.add(ex["name"].lower())
+    return extras
+
+
 def main():
     if not SOURCE_JSON.exists():
         raise SystemExit(f"Source dataset not found at {SOURCE_JSON} — is free-exercise-db checked out at {SOURCE_DIR}?")
@@ -167,12 +213,36 @@ def main():
                 require_paths.append(f"require('../../assets/exercises/{slug}/{Path(rel).name}')")
             manifest_entries.append(f"  {ts_string(slug)}: [{', '.join(require_paths)}],")
 
+    # ── Hand-curated additions (scripts/extra-exercises.json) ────────────────
+    upstream_names = [NAME_OVERRIDES.get(ex["id"], ex["name"]) for ex in exercises]
+    extras = load_extras((ex["id"] for ex in exercises), upstream_names)
+    for ex in extras:
+        data_entries.append(
+            "  { slug: %s, name: %s, muscle_group: %s, type: %s, equipment: %s, "
+            "level: %s, category: %s, instructions: %s, replaces_custom: %s }"
+            % (
+                ts_string(ex["slug"]),
+                ts_string(ex["name"]),
+                ts_string(ex["muscle_group"]),
+                ts_string(ex["type"]),
+                ts_string_or_null(ex.get("equipment")),
+                ts_string(ex["level"]),
+                ts_string(ex["category"]),
+                ts_string("\n".join(ex["instructions"])),
+                ts_string_list(ex.get("replaces_custom") or []),
+            )
+        )
+        require_paths = [f"require('../../assets/{rel}')" for rel in ex["images"]]
+        manifest_entries.append(f"  {ts_string(ex['slug'])}: [{', '.join(require_paths)}],")
+    print(f"Merged {len(extras)} hand-curated exercises from {EXTRA_JSON}")
+
     # ── Write the data file ──────────────────────────────────────────────────
     DATA_OUT.parent.mkdir(parents=True, exist_ok=True)
     data_ts = (
         "// AUTO-GENERATED by scripts/import-free-exercise-db.py from free-exercise-db\n"
-        "// (https://github.com/yuhonas/free-exercise-db, public domain). Do not hand-edit —\n"
-        "// re-run the script if the source dataset changes.\n\n"
+        "// (https://github.com/yuhonas/free-exercise-db, public domain), followed by the\n"
+        "// hand-curated additions in scripts/extra-exercises.json. Do not hand-edit —\n"
+        "// edit that JSON or re-run the script if the source dataset changes.\n\n"
         "export interface SeedExerciseData {\n"
         "  slug: string;\n"
         "  name: string;\n"
@@ -182,6 +252,10 @@ def main():
         "  level: string;\n"
         "  category: string;\n"
         "  instructions: string | null;\n"
+        "  // Hand-curated additions only: names of the custom exercises this entry replaces. A\n"
+        "  // custom exercise with one of these names becomes this library entry in place, keeping\n"
+        "  // its id (see promoteCustomExercises() in schema.ts and importBackup() in backup.ts).\n"
+        "  replaces_custom?: string[];\n"
         "}\n\n"
         "export const SEED_EXERCISES_FULL: SeedExerciseData[] = [\n"
         + ",\n".join(data_entries)
@@ -194,7 +268,9 @@ def main():
     MANIFEST_OUT.parent.mkdir(parents=True, exist_ok=True)
     manifest_ts = (
         "// AUTO-GENERATED by scripts/import-free-exercise-db.py. Do not hand-edit —\n"
-        "// re-run the script if the source dataset changes.\n"
+        "// re-run the script if the source dataset changes. Hand-curated entries (from\n"
+        "// scripts/extra-exercises.json) come last and point into assets/exercises-extra/\n"
+        "// or reuse free-exercise-db images.\n"
         "//\n"
         "// Metro (React Native's bundler) only supports static, string-literal require()\n"
         "// calls for local assets — it can't resolve a variable path at runtime. This\n"

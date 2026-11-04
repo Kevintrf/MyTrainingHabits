@@ -1,17 +1,20 @@
 import { db } from './client';
+import { curatedReplacementFor } from './curatedExercises';
 
 // ---------------------------------------------------------------------------
 // JSON backup / restore of everything the user has created or logged.
 // ---------------------------------------------------------------------------
 // The backup is a plain dump of every table's rows, except the seed exercise library: its
-// 873 rows are the same reference data on every install (and ~750 KB), so seed exercises are
+// 885 rows are the same reference data on every install (and ~750 KB), so seed exercises are
 // written only as { id, source_slug, name, notes, short_note } — the parts the user can
 // change — and only the ones that have notes or are used by the program or history.
 //
 // Import replaces all current data. Seed exercise ids aren't stable across installs (they
 // depend on what the install's library looked like when it was first seeded), so exercises
 // are matched by source_slug and every exercise_id in the backup is remapped to the local id.
-// All other ids (workouts, cycles, sets) are kept as-is, since those tables are emptied first.
+// Custom exercises that have since become library entries (see db/curatedExercises.ts) are
+// matched to that entry by name. All other ids (workouts, cycles, sets) are kept as-is, since
+// those tables are emptied first.
 //
 // Rows are inserted using only the columns that exist both in the backup and in the current
 // schema, so a backup made by an older/newer version of the app still imports as long as
@@ -198,6 +201,16 @@ export function importBackup(backup: BackupFile): void {
     // --- exercises: build backup id → local id ---
     const exerciseCols = tableColumns('exercises');
     const exerciseIdMap = new Map<number, number>();
+    // Backup exercise id → its old and new name, for custom exercises mapped onto a library entry
+    // with a different name (see the cycle_sets import below).
+    const renamedExercises = new Map<number, { from: string; to: string }>();
+    const adoptedIds = new Set<number>();
+    const restoreNotes = (ex: Row, localId: number) =>
+      db.runSync('UPDATE exercises SET notes = ?, short_note = ? WHERE id = ?', [
+        ex.notes ?? null,
+        ex.short_note ?? null,
+        localId,
+      ]);
     for (const ex of data.exercises) {
       const backupId = Number(ex.id);
       if (ex.source === 'SEED' && typeof ex.source_slug === 'string') {
@@ -206,16 +219,29 @@ export function importBackup(backup: BackupFile): void {
           [ex.source_slug],
         );
         if (local) {
-          db.runSync('UPDATE exercises SET notes = ?, short_note = ? WHERE id = ?', [
-            ex.notes ?? null,
-            ex.short_note ?? null,
-            local.id,
-          ]);
+          restoreNotes(ex, local.id);
           exerciseIdMap.set(backupId, local.id);
           continue;
         }
         // Seed exercise that no longer exists in this install's library — keep it (and the
         // history pointing at it) as a custom exercise instead of dropping it.
+      }
+      // A custom exercise that has since become a library entry maps onto that entry, the same
+      // way the phone's own copy was converted in place (promoteCustomExercises in schema.ts) —
+      // restoring an older backup must not bring it back as a duplicate custom exercise.
+      const curated = ex.source === 'USER' && typeof ex.name === 'string' ? curatedReplacementFor(ex.name) : undefined;
+      if (curated) {
+        const local = db.getFirstSync<{ id: number; name: string }>(
+          `SELECT id, name FROM exercises WHERE source = 'SEED' AND source_slug = ?`,
+          [curated.slug],
+        );
+        if (local && !adoptedIds.has(local.id)) {
+          restoreNotes(ex, local.id);
+          exerciseIdMap.set(backupId, local.id);
+          adoptedIds.add(local.id);
+          if (local.name !== ex.name) renamedExercises.set(backupId, { from: ex.name as string, to: local.name });
+          continue;
+        }
       }
       if (typeof ex.name !== 'string' || !ex.name.trim()) continue;
       const localId = insertRow(
@@ -246,9 +272,16 @@ export function importBackup(backup: BackupFile): void {
     const cycleWorkoutCols = tableColumns('cycle_workouts');
     for (const row of data.cycle_workouts) insertRow('cycle_workouts', cycleWorkoutCols, row);
 
+    // A set's exercise_name is a copy of the exercise's name; follow a custom → library rename the
+    // same way promoteCustomExercises does on the phone, so a restore matches an in-place upgrade.
     const cycleSetCols = tableColumns('cycle_sets');
     for (const row of data.cycle_sets) {
-      insertRow('cycle_sets', cycleSetCols, { ...row, exercise_id: mapExerciseId(row.exercise_id) });
+      const rename = row.exercise_id === null ? undefined : renamedExercises.get(Number(row.exercise_id));
+      insertRow('cycle_sets', cycleSetCols, {
+        ...row,
+        exercise_id: mapExerciseId(row.exercise_id),
+        ...(rename && row.exercise_name === rename.from ? { exercise_name: rename.to } : {}),
+      });
     }
   });
 }

@@ -15,8 +15,8 @@ export interface Exercise {
   // Short note shown under the exercise's name on every workout day it appears in (program
   // editor and live workouts) — one per exercise, not per day.
   short_note: string | null;
-  // The following are only populated for exercises imported from free-exercise-db
-  // (source_slug non-null) — null for user-created custom exercises.
+  // The following are only populated for library exercises — free-exercise-db imports and the
+  // hand-curated additions (source_slug non-null) — null for user-created custom exercises.
   equipment: string | null;
   level: string | null;
   category: string | null;

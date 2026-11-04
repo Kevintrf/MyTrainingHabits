@@ -1,0 +1,387 @@
+{
+  "about": "Hand-curated additions to the built-in exercise library, merged after the free-exercise-db data by import-free-exercise-db.py. Each started out as a custom exercise on the phone; replaces_custom lists those custom names, and on launch a custom exercise with one of them becomes this library entry in place (same id, so its program, history and notes stay attached). Image paths are relative to app/assets: exercises-extra/ holds images made for these entries (3:2 JPEGs; image_sources says where each came from), exercises/ paths reuse free-exercise-db's own photos. Guide text is compiled from the pages in each entry's sources.",
+  "exercises": [
+    {
+      "slug": "MTH_Machine_Chest_Press",
+      "name": "Machine Chest Press",
+      "replaces_custom": ["Machine chest press"],
+      "muscle_group": "CHEST",
+      "type": "STRENGTH",
+      "equipment": "machine",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Adjust the seat so the handles line up with the middle of your chest and select the weight. Sit with your back flat against the backrest and your feet flat on the floor.",
+        "Grip the handles with a palms-down (or neutral) grip. Pull your shoulder blades back and down against the pad and keep your chest up. This will be your starting position.",
+        "Exhale and press the handles forward until your arms are straight, without locking your elbows hard or letting your shoulders roll forward off the backrest.",
+        "Inhale and let the handles come back slowly until your hands are about level with your chest and you feel a stretch across it.",
+        "Keep your wrists straight and your elbows a little below shoulder height rather than flared straight out to the sides.",
+        "Repeat for the recommended amount of repetitions. If the machine has a foot lever, use it to bring the handles forward before the first rep and to set them back down after the last."
+      ],
+      "images": [
+        "exercises/Machine_Bench_Press/0.jpg",
+        "exercises/Machine_Bench_Press/1.jpg",
+        "exercises/Leverage_Chest_Press/0.jpg",
+        "exercises/Leverage_Chest_Press/1.jpg"
+      ],
+      "image_sources": [
+        "free-exercise-db (bodybuilding.com photos): Machine_Bench_Press, Leverage_Chest_Press"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/machine-chest-press/",
+        "https://www.acefitness.org/resources/everyone/exercise-library/19/chest-press/",
+        "free-exercise-db: Machine_Bench_Press, Leverage_Chest_Press"
+      ]
+    },
+    {
+      "slug": "MTH_Seated_Machine_Shoulder_Press",
+      "name": "Seated Machine Shoulder Press",
+      "replaces_custom": ["Seated machine shoulder press"],
+      "muscle_group": "SHOULDERS",
+      "type": "STRENGTH",
+      "equipment": "machine",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Adjust the seat so the handles start at about shoulder height and select the weight. Sit with your back flat against the backrest and your feet flat on the floor.",
+        "Grip the handles with your elbows bent under them, pointing down and slightly forward rather than flared straight out to the sides. Brace your core. This will be your starting position.",
+        "Exhale and press the handles up until your arms are straight overhead, without locking your elbows hard.",
+        "Inhale and lower the handles slowly back to about shoulder height.",
+        "Keep your lower back against the pad throughout - don't arch it or push your hips forward to finish a rep.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Seated_Machine_Shoulder_Press/0.jpg",
+        "exercises-extra/MTH_Seated_Machine_Shoulder_Press/1.jpg",
+        "exercises/Machine_Shoulder_Military_Press/0.jpg",
+        "exercises/Machine_Shoulder_Military_Press/1.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2020/03/machine-shoulder-press.gif (frames 0, 10)",
+        "free-exercise-db (bodybuilding.com photos): Machine_Shoulder_Military_Press"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/machine-shoulder-press/",
+        "free-exercise-db: Machine_Shoulder_Military_Press, Leverage_Shoulder_Press"
+      ]
+    },
+    {
+      "slug": "MTH_Incline_Machine_Smith_Press",
+      "name": "Incline Machine/Smith Press",
+      "replaces_custom": ["Incline machine/smith press"],
+      "muscle_group": "CHEST",
+      "type": "STRENGTH",
+      "equipment": "machine",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Machine: adjust the seat so the handles line up with your upper chest and select the weight. Sit with your back flat against the incline pad and grip the handles.",
+        "Smith machine: set an adjustable bench to about 30-45° and position it so the bar comes down to your upper chest. If the machine has safety stops, set them to catch the bar just below that point. Lie back, grip the bar slightly wider than shoulder-width and unrack it by rotating it off the hooks.",
+        "Pull your shoulder blades together and down, keep your chest up and your feet planted on the floor.",
+        "Exhale and press the handles or bar up and away from you until your arms are straight, keeping your upper back and hips on the pad.",
+        "Inhale and lower them slowly until your hands are level with your upper chest (the bar just touching it), keeping your elbows a little below shoulder height.",
+        "Repeat for the recommended amount of repetitions. On the Smith machine, rotate the bar back onto the hooks when you are done."
+      ],
+      "images": [
+        "exercises/Leverage_Incline_Chest_Press/0.jpg",
+        "exercises/Leverage_Incline_Chest_Press/1.jpg",
+        "exercises-extra/MTH_Incline_Machine_Smith_Press/0.jpg",
+        "exercises-extra/MTH_Incline_Machine_Smith_Press/1.jpg"
+      ],
+      "image_sources": [
+        "free-exercise-db (bodybuilding.com photos): Leverage_Incline_Chest_Press",
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2020/04/smith-machine-incline-bench-press.gif (frames 0, 10)"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/smith-machine-incline-bench-press/",
+        "free-exercise-db: Leverage_Incline_Chest_Press, Smith_Machine_Incline_Bench_Press"
+      ]
+    },
+    {
+      "slug": "MTH_Machine_or_Seated_Cable_Lateral_Raise",
+      "name": "Machine or Seated Cable Lateral Raise",
+      "replaces_custom": ["Machine or seated cable lateral raise"],
+      "muscle_group": "SHOULDERS",
+      "type": "STRENGTH",
+      "equipment": "machine / cable",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Machine: adjust the seat so your shoulders line up with the machine's pivot points and the pads rest against the outside of your arms, just above the elbows. Sit tall, with your chest against the chest pad if the machine has one, and select the weight.",
+        "Seated cable (the photos show it standing - the arm movement is the same): set a pulley to its lowest position and attach a single handle. Sit sideways on a bench next to the machine and hold the handle in the hand farthest from it, so the cable runs across the front of your body.",
+        "Sit tall with your feet flat on the floor, brace your core and keep your shoulders down, away from your ears. Keep a slight bend in your elbows. This will be your starting position.",
+        "Exhale and raise your arm out to the side, leading with the elbow, until your upper arm is about parallel to the floor.",
+        "Pause for a second, then inhale and lower slowly back to the starting position without letting the weight stack rest.",
+        "Use a weight you can lift without swinging your body or shrugging. Repeat for the recommended amount of repetitions - for the cable version, do all reps with one arm, then switch sides."
+      ],
+      "images": [
+        "exercises-extra/MTH_Machine_or_Seated_Cable_Lateral_Raise/0.jpg",
+        "exercises-extra/MTH_Machine_or_Seated_Cable_Lateral_Raise/1.jpg",
+        "exercises-extra/MTH_Machine_or_Seated_Cable_Lateral_Raise/2.jpg",
+        "exercises-extra/MTH_Machine_or_Seated_Cable_Lateral_Raise/3.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2020/04/lateral-raise-machine.gif (frames 0, 11)",
+        "2-3: https://www.strengthlog.com/wp-content/uploads/2025/11/cable-lateral-raise.gif (frames 0, 22)"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/machine-lateral-raise/",
+        "https://www.strengthlog.com/cable-lateral-raise/",
+        "https://www.acefitness.org/resources/everyone/exercise-library/295/lateral-shoulder-raise/",
+        "https://www.acefitness.org/resources/everyone/exercise-library/354/single-arm-lateral-raise/"
+      ]
+    },
+    {
+      "slug": "MTH_Seated_Overhead_Cable_DB_Triceps_Extension_Back_Supported",
+      "name": "Seated Overhead Cable/DB Triceps Extension (Back Supported)",
+      "replaces_custom": ["Seated overhead cable/DB triceps extension (back supported)"],
+      "muscle_group": "ARMS",
+      "type": "STRENGTH",
+      "equipment": "cable / dumbbell",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Set an adjustable bench upright (about 80-90°, or a slight incline) and sit with your back flat against the pad and your feet flat on the floor. The back support keeps your lower back from arching as the weight goes overhead.",
+        "Cable: place the bench in front of a low pulley with a rope attached, facing away from the machine. Hold the rope behind your neck with a neutral grip (palms facing each other), sit back against the pad and press the rope up to straight arms.",
+        "Dumbbell: cup the top end of one dumbbell with both hands (palms against the inside of the top plate, thumbs around the handle) and press it up to straight arms.",
+        "With your arms straight overhead and your upper arms close to your head, this will be your starting position.",
+        "Inhale and lower the rope or dumbbell behind your head by bending only at the elbows, until your forearms are just past parallel to the floor and you feel a stretch in your triceps.",
+        "Exhale and straighten your arms back to the starting position, spreading the rope ends a little apart at the top.",
+        "Keep your elbows pointing up and in rather than flaring out, keep your back against the pad and look straight ahead. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Seated_Overhead_Cable_DB_Triceps_Extension_Back_Supported/0.jpg",
+        "exercises/Seated_Triceps_Press/0.jpg",
+        "exercises/Seated_Triceps_Press/1.jpg"
+      ],
+      "image_sources": [
+        "0: https://cdn.muscleandstrength.com/sites/default/files/incline-cable-tricep-extension-rope-extension.jpg (cropped to 3:2)",
+        "free-exercise-db (bodybuilding.com photos): Seated_Triceps_Press"
+      ],
+      "sources": [
+        "https://www.muscleandstrength.com/exercises/seated-low-pulley-overhead-tricep-extension-(rope-extension).html",
+        "https://www.muscleandstrength.com/exercises/incline-bench-rope-extension.html",
+        "https://www.strengthlog.com/overhead-cable-triceps-extension/",
+        "free-exercise-db: Seated_Triceps_Press"
+      ]
+    },
+    {
+      "slug": "MTH_Lat_Pulldown_Medium_Grip",
+      "name": "Lat Pulldown (Medium Grip)",
+      "replaces_custom": ["Lat Pulldown (Medium Grip)"],
+      "muscle_group": "BACK",
+      "type": "STRENGTH",
+      "equipment": "cable",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Adjust the thigh pad so it fits snugly on top of your thighs and keeps you from lifting off the seat. Select the weight.",
+        "Grip the bar with an overhand grip, hands slightly wider than shoulder-width (a medium grip), and sit down with your thighs under the pad and your arms fully extended.",
+        "Brace your core, keep your chest up and lean back slightly - no more than about 30°. This will be your starting position.",
+        "Exhale and pull the bar down toward your upper chest by driving your elbows down toward your sides, squeezing your shoulder blades together and down at the bottom.",
+        "Stop when the bar is just below your chin or touches your upper chest, or when your elbows stop moving down and start moving backward. Don't lean further back to finish the rep.",
+        "Inhale and let the bar rise slowly until your arms are fully extended again, then repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Lat_Pulldown_Medium_Grip/0.jpg",
+        "exercises-extra/MTH_Lat_Pulldown_Medium_Grip/1.jpg"
+      ],
+      "image_sources": [
+        "0: https://www.strengthlog.com/wp-content/uploads/2023/03/Lat-pulldown-starting-position.jpg",
+        "1: https://www.strengthlog.com/wp-content/uploads/2023/03/Lat-pulldown-bottom-position.jpg"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/lat-pulldown-with-pronated-grip/",
+        "https://www.acefitness.org/resources/everyone/exercise-library/158/seated-lat-pulldown/"
+      ]
+    },
+    {
+      "slug": "MTH_Chest-Supported_Row",
+      "name": "Chest-Supported Row",
+      "replaces_custom": ["Chest supported row"],
+      "muscle_group": "BACK",
+      "type": "STRENGTH",
+      "equipment": "machine / dumbbell",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Machine: adjust the seat and chest pad so the handles are at about chest height and you can only just reach them with straight arms. Sit with your chest against the pad and grip the handles with a neutral or overhand grip.",
+        "Dumbbells: set an incline bench to about 45° and lie face down on it with your chest against the pad and your feet planted on the floor, letting a dumbbell hang straight down from each hand.",
+        "Keep your chest on the pad for the whole set - the support takes your lower back out of the lift, so don't lift off it to heave the weight. This will be your starting position.",
+        "Exhale and row the handles or dumbbells toward your torso by driving your elbows back, squeezing your shoulder blades together at the top. With dumbbells, pull toward your hips.",
+        "Pause briefly, then inhale and lower slowly until your arms are fully extended and your shoulder blades stretch forward.",
+        "Keep your shoulders down, away from your ears, and avoid jerking the weight. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Chest-Supported_Row/0.jpg",
+        "exercises-extra/MTH_Chest-Supported_Row/1.jpg",
+        "exercises-extra/MTH_Chest-Supported_Row/2.jpg",
+        "exercises-extra/MTH_Chest-Supported_Row/3.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2020/04/seated-machine-row.gif (frames 0, 12)",
+        "2: https://www.strengthlog.com/wp-content/uploads/2024/12/chest-supported-dumbbell-row-starting-position.png",
+        "3: https://www.strengthlog.com/wp-content/uploads/2024/12/chest-supported-dumbbell-row-top-position.png"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/seated-machine-row/",
+        "https://www.strengthlog.com/chest-supported-dumbbell-row/",
+        "free-exercise-db: Leverage_Iso_Row, Dumbbell_Incline_Row"
+      ]
+    },
+    {
+      "slug": "MTH_Machine_Reverse_Fly",
+      "name": "Machine Reverse Fly",
+      "replaces_custom": ["Machine reverse fly"],
+      "muscle_group": "SHOULDERS",
+      "type": "STRENGTH",
+      "equipment": "machine",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Sit facing the machine with your chest against the pad. Adjust the seat so the handles are at shoulder height, and set the handles to their front position (on a pec deck, the reverse-fly setting) for a long range of motion.",
+        "Grip the handles with your palms facing each other or facing down, arms straight out in front of you with a slight bend in the elbows. This will be your starting position.",
+        "Exhale and pull the handles out and back in a wide arc until your arms are in line with your body. Keep the elbow bend fixed - all of the movement happens at the shoulders.",
+        "Pause for a second and squeeze the backs of your shoulders without shrugging.",
+        "Inhale and let the handles return slowly to the starting position.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Machine_Reverse_Fly/0.jpg",
+        "exercises-extra/MTH_Machine_Reverse_Fly/1.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2025/11/reverse-machine-fly.gif (frames 0, 19)"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/reverse-machine-fly/",
+        "free-exercise-db: Reverse_Machine_Flyes"
+      ]
+    },
+    {
+      "slug": "MTH_Machine_Cable_Fly",
+      "name": "Machine/Cable Fly",
+      "replaces_custom": ["Machine/Cable Fly"],
+      "muscle_group": "CHEST",
+      "type": "STRENGTH",
+      "equipment": "machine / cable",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Machine (pec deck): adjust the seat so the handles are at about chest height, with your upper arms close to parallel to the floor. Sit with your back flat against the pad and grip the handles with your arms out to the sides.",
+        "Cable: attach a single handle to each side of a cable crossover, set at about shoulder height or higher. Grip the handles, step forward until the cables are under tension and lean slightly forward in a staggered stance.",
+        "Keep a slight, fixed bend in your elbows and your chest up. This will be your starting position.",
+        "Exhale and bring your hands together in a wide arc in front of your chest, squeezing your chest at the end.",
+        "Pause briefly, then inhale and let your arms open slowly until you feel a good stretch across your chest - don't let the weight drag your arms back further than your shoulders comfortably allow.",
+        "Don't bend your elbows more to turn it into a press, and don't swing the weight with your body. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Machine_Cable_Fly/0.jpg",
+        "exercises-extra/MTH_Machine_Cable_Fly/1.jpg",
+        "exercises-extra/MTH_Machine_Cable_Fly/2.jpg",
+        "exercises-extra/MTH_Machine_Cable_Fly/3.jpg"
+      ],
+      "image_sources": [
+        "0: https://www.strengthlog.com/wp-content/uploads/2025/11/machine-chest-fly-start.png",
+        "1: https://www.strengthlog.com/wp-content/uploads/2025/11/machine-chest-fly-end.png",
+        "2: https://www.strengthlog.com/wp-content/uploads/2025/11/standing-cable-chest-fly-start.png",
+        "3: https://www.strengthlog.com/wp-content/uploads/2025/11/standing-cable-chest-fly-end.png"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/machine-chest-fly/",
+        "https://www.strengthlog.com/standing-cable-chest-fly/",
+        "free-exercise-db: Butterfly"
+      ]
+    },
+    {
+      "slug": "MTH_Neutral-Grip_Pulldown_or_Assisted_Pull-Up",
+      "name": "Neutral-Grip Pulldown or Assisted Pull-Up",
+      "replaces_custom": ["Neutral grip pulldown or assisted pull up"],
+      "muscle_group": "BACK",
+      "type": "STRENGTH",
+      "equipment": "cable / machine",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Neutral-grip pulldown: attach a neutral-grip handle (palms facing each other) to the pulldown cable, adjust the thigh pad so it holds you down, and sit with your arms fully extended.",
+        "Assisted pull-up: select the assistance - on an assisted pull-up machine, more weight means more help. Grip the handles (neutral handles if the machine has them, otherwise overhand and slightly wider than shoulder-width), then step or kneel onto the platform and let your weight push it down until you hang with your arms fully extended.",
+        "Keep your chest up, look up at the bar or handles and brace your core. This will be your starting position.",
+        "Exhale and pull - the handle down to your upper chest, or yourself up until your chin passes the handles - driving your elbows down toward your sides.",
+        "Pause briefly with your shoulder blades squeezed down and back, then inhale and return slowly until your arms are fully extended again.",
+        "Avoid swinging or leaning far back. On the assisted machine, reduce the assistance over time as you get stronger. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Neutral-Grip_Pulldown_or_Assisted_Pull-Up/0.jpg",
+        "exercises-extra/MTH_Neutral-Grip_Pulldown_or_Assisted_Pull-Up/1.jpg",
+        "exercises-extra/MTH_Neutral-Grip_Pulldown_or_Assisted_Pull-Up/2.jpg",
+        "exercises-extra/MTH_Neutral-Grip_Pulldown_or_Assisted_Pull-Up/3.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2025/09/lat-pulldown-with-neutral-grip-1.gif (frames 0, 19)",
+        "2-3: https://www.strengthlog.com/wp-content/uploads/2024/02/assisterade-chins.gif (frames 0, 20)"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/lat-pulldown-with-neutral-grip/",
+        "https://www.strengthlog.com/assisted-pull-up/",
+        "free-exercise-db: V-Bar_Pulldown"
+      ]
+    },
+    {
+      "slug": "MTH_Incline_DB_Curl",
+      "name": "Incline DB Curl",
+      "replaces_custom": ["Incline DB Curl"],
+      "muscle_group": "ARMS",
+      "type": "STRENGTH",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Set an adjustable bench to an incline of about 45-60° and sit back against it with a dumbbell in each hand and your feet flat on the floor.",
+        "Let your arms hang straight down from your shoulders with your palms facing forward and your elbows close to your torso. This will be your starting position.",
+        "Exhale and curl the dumbbells up toward your shoulders by bending your elbows, keeping your upper arms still - only your forearms should move.",
+        "Squeeze your biceps for a second at the top, then inhale and lower the dumbbells slowly until your arms are completely straight again.",
+        "The incline stretches the biceps at the bottom of each rep - use the full range of motion and avoid swinging the weights. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Incline_DB_Curl/0.jpg",
+        "exercises-extra/MTH_Incline_DB_Curl/1.jpg"
+      ],
+      "image_sources": [
+        "0-1: https://www.strengthlog.com/wp-content/uploads/2020/10/Incline-Dumbbell-Curl.gif (frames 0, 12)"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/incline-dumbbell-curl/",
+        "free-exercise-db: Incline_Dumbbell_Curl"
+      ]
+    },
+    {
+      "slug": "MTH_Dumbbell_Lateral_Raise",
+      "name": "Dumbbell Lateral Raise",
+      "replaces_custom": ["Dumbbell Lateral Raise"],
+      "muscle_group": "SHOULDERS",
+      "type": "STRENGTH",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "category": "strength",
+      "instructions": [
+        "Stand tall holding a dumbbell in each hand at your sides, palms facing your body, feet about hip-width apart and a slight bend in your elbows.",
+        "Brace your core and pull your shoulders down and back. This will be your starting position.",
+        "Exhale and raise the dumbbells out to your sides, leading with your elbows, until your upper arms are about parallel to the floor. As your arms pass about 60-70°, turn them very slightly so the front ends of the dumbbells point a little upward - this may reduce stress on the shoulder joint.",
+        "Pause for a second at the top, then inhale and lower the dumbbells slowly back to your sides.",
+        "Choose a weight you can lift without swinging your body, shrugging or locking your elbows. Repeat for the recommended amount of repetitions."
+      ],
+      "images": [
+        "exercises-extra/MTH_Dumbbell_Lateral_Raise/0.jpg",
+        "exercises-extra/MTH_Dumbbell_Lateral_Raise/1.jpg"
+      ],
+      "image_sources": [
+        "0: https://www.strengthlog.com/wp-content/uploads/2023/05/Dumbbell-lateral-raise-starting-position.png",
+        "1: https://www.strengthlog.com/wp-content/uploads/2023/05/Dumbbell-lateral-raise-top-position.png"
+      ],
+      "sources": [
+        "https://www.strengthlog.com/dumbbell-lateral-raise/",
+        "https://www.acefitness.org/resources/everyone/exercise-library/26/lateral-raise/"
+      ]
+    }
+  ]
+}
