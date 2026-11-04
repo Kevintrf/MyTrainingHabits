@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (31)
+
+### feat: export and import all data as a JSON backup
+New **Backup** section in Settings. **Export data** asks for a folder (system folder picker, so cloud drives work too) and writes a timestamped `MyTrainingHabits-backup-YYYY-MM-DD-HHMMSS.json` holding everything: settings, program workouts/exercises, every cycle, workout and set (completed times included), custom exercises, and long/short notes. The 873-exercise seed library isn't copied, since it's the same on every install (~750 KB): seed exercises are stored only as `source_slug` + name + notes, and only when they have notes or are used by the program or history. **Import data** opens a backup file, shows what it contains, and after confirmation replaces all current data in one transaction (an error leaves everything as it was). Seed exercise ids differ between installs, so exercises are matched by `source_slug` and every `exercise_id` is remapped. A custom exercise whose name now clashes with a seed exercise is kept as "Name (custom)", and a seed exercise missing from this install becomes a custom one, so no history is lost. Rows are inserted using only the columns both the backup and the current schema have, so backups survive future column changes. A `backup_version` newer than the app's is refused. After importing, every tab is reset so no open screen keeps ids from the replaced data, and any running rest timer is cancelled. Data logic is in `src/db/backup.ts` and file picking in `src/services/backupFiles.ts`, using `expo-file-system`'s pickers; `expo-file-system` is now a direct dependency.
+
+---
+
 ## 2026-11-04 (30)
 
 ### feat: set suggestions show the latest result on every day

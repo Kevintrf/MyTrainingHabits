@@ -94,6 +94,7 @@ Goal: Features that make this app meaningfully better than a notebook.
 - [ ] Copy a previous cycle's actuals — "repeat last [Push Day]" shortcut
 - [ ] Authentication — replace hardcoded user_id=1 with real sign-up/login
 - [ ] Onboarding flow — first-run screen to set name and goals
+- [x] Data backup — JSON export/import of all data from Settings
 - [ ] Data export — CSV of the full training log
 - [ ] Personal records — automatically flag when a new max weight is hit for an exercise
 - [ ] Volume tracking — track total sets × reps × weight per muscle group per cycle
@@ -107,7 +108,7 @@ Goal: Features that make this app meaningfully better than a notebook.
 
 These get built only after there are real users with real feedback.
 
-- Cloud sync / backup
+- Cloud sync (manual JSON backup exists, see Settings → Backup)
 - Social features / sharing workouts
 - AI coaching or program generation
 - Advanced periodization tools

@@ -1,10 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { getSettings, updateSettings } from '../db/settings';
+import { BackupSummary, exportBackup, importBackup, parseBackup } from '../db/backup';
+import { pickBackupFile, saveBackupFile } from '../services/backupFiles';
+import { useApp } from '../context/AppContext';
+import { showAlert } from '../utils/alert';
 import { openExactAlarmSettings } from '../services/restTimerNotifications';
 import { describeChoice, useSetTimePrompt } from '../context/SetTimePromptContext';
 import { minutesLeft } from '../components/SetTimeChoiceToast';
+
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+function describeSummary(s: BackupSummary): string {
+  return [
+    plural(s.programWorkouts, 'program workout'),
+    plural(s.cycles, 'cycle'),
+    plural(s.loggedSets, 'logged set'),
+    plural(s.customExercises, 'custom exercise'),
+  ].join(', ');
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 function sanitizeMinutes(v: string): string {
   return v.replace(/[^0-9]/g, '').slice(0, 1);
@@ -22,6 +44,9 @@ export default function SettingsScreen() {
   const [secondsText, setSecondsText] = useState('00');
   const durationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { remembered, clearRemembered } = useSetTimePrompt();
+  const { refreshCycle, cancelRestTimer } = useApp();
+  const navigation = useNavigation();
+  const [backupBusy, setBackupBusy] = useState<'export' | 'import' | null>(null);
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -73,6 +98,63 @@ export default function SettingsScreen() {
     const clean = sanitizeSeconds(v);
     setSecondsText(clean);
     scheduleDurationSave(minutesText, clean);
+  }
+
+  async function handleExport() {
+    if (backupBusy) return;
+    setBackupBusy('export');
+    try {
+      const { json, summary } = await exportBackup();
+      const name = await saveBackupFile(json);
+      if (name) showAlert('Backup saved', `${name}\n\nContains ${describeSummary(summary)}.`);
+    } catch (e) {
+      showAlert('Export failed', errorMessage(e));
+    } finally {
+      setBackupBusy(null);
+    }
+  }
+
+  async function handleImport() {
+    if (backupBusy) return;
+    setBackupBusy('import');
+    try {
+      const json = await pickBackupFile();
+      if (json === null) return;
+      const { backup, summary } = parseBackup(json);
+      const exportedAt = new Date(backup.exported_at);
+      const from = isNaN(exportedAt.getTime()) ? '' : ` from ${exportedAt.toLocaleString()}`;
+      showAlert(
+        'Replace all data?',
+        `This backup${from} contains ${describeSummary(summary)}.\n\nEverything currently in the app — program, history, custom exercises, notes and settings — will be replaced by it. This can't be undone; export a backup first if you might want the current data back.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Replace', style: 'destructive', onPress: () => applyImport(backup) },
+        ],
+      );
+    } catch (e) {
+      showAlert('Import failed', errorMessage(e));
+    } finally {
+      setBackupBusy(null);
+    }
+  }
+
+  async function applyImport(backup: ReturnType<typeof parseBackup>['backup']) {
+    try {
+      importBackup(backup);
+    } catch (e) {
+      showAlert('Import failed', `Nothing was changed.\n\n${errorMessage(e)}`);
+      return;
+    }
+    cancelRestTimer();
+    await refreshCycle();
+    // Rebuild every tab from scratch: screens deeper in a stack (e.g. an open workout) hold
+    // ids from the data that was just replaced. This also remounts this screen with the
+    // imported settings.
+    navigation.getParent()?.reset({
+      index: 3,
+      routes: [{ name: 'CycleTab' }, { name: 'ProgramTab' }, { name: 'ExercisesTab' }, { name: 'Settings' }],
+    });
+    showAlert('Backup imported', 'All data was restored from the backup.');
   }
 
   const totalSeconds = (parseInt(minutesText, 10) || 0) * 60 + (parseInt(secondsText, 10) || 0);
@@ -200,6 +282,31 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        <Text style={styles.sectionHeading}>BACKUP</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.settingsLinkRow} onPress={handleExport} disabled={!!backupBusy}>
+            <Ionicons name="download-outline" size={20} color="#2D6A4F" />
+            <View style={styles.settingsLinkText}>
+              <Text style={styles.settingsLinkTitle}>Export data</Text>
+              <Text style={styles.settingsLinkDesc}>
+                Saves everything — program, workout history, custom exercises, notes and settings — as a JSON file in a folder you pick
+              </Text>
+            </View>
+            {backupBusy === 'export' ? <ActivityIndicator color="#2D6A4F" /> : <Ionicons name="chevron-forward" size={18} color="#ccc" />}
+          </TouchableOpacity>
+
+          <View style={styles.cardDivider} />
+
+          <TouchableOpacity style={styles.settingsLinkRow} onPress={handleImport} disabled={!!backupBusy}>
+            <Ionicons name="push-outline" size={20} color="#2D6A4F" />
+            <View style={styles.settingsLinkText}>
+              <Text style={styles.settingsLinkTitle}>Import data</Text>
+              <Text style={styles.settingsLinkDesc}>Restores a backup file, replacing all current data</Text>
+            </View>
+            {backupBusy === 'import' ? <ActivityIndicator color="#2D6A4F" /> : <Ionicons name="chevron-forward" size={18} color="#ccc" />}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
