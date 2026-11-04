@@ -9,6 +9,8 @@ All changes to the project are documented here.
 ### feat: hint when the target reps were met at one weight
 Exercise cards on a workout now show a small green line under the name when, the last time the exercise was done, every set reached the program's target reps at the same weight — e.g. "Hit 10 reps on all sets @ 60 kg last time", or "· 3× in a row" when it happened several sessions running at that weight. It's a hint that the weight may be ready to go up. Sessions come from any day or cycle (the workout being viewed is excluded, like the set suggestions); a session only counts if every one of its sets for the exercise was checked off, and the streak resets when the weight changes. Nothing is shown for exercises without a target rep count. New `getTargetStreak` in `db/sets.ts`.
 
+---
+
 ## 2026-11-04 (31)
 
 ### feat: export and import all data as a JSON backup
