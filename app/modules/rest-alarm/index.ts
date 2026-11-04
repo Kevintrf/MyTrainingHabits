@@ -5,7 +5,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
 // approach). On iOS this native module is never linked, so `requireOptionalNativeModule`
 // returns null and every export below silently no-ops; iOS keeps using expo-notifications.
 interface RestAlarmModuleType {
-  scheduleRestAlarm(triggerAtMillis: number, soundEnabled: boolean): void;
+  scheduleRestAlarm(triggerAtMillis: number, soundEnabled: boolean, headphonesOnly: boolean): void;
   cancelRestAlarm(): void;
   clearRestAlarmNotification(): void;
 }
@@ -18,8 +18,15 @@ const RestAlarmNativeModule = requireOptionalNativeModule<RestAlarmModuleType>('
 // audio stream with an explicit audio-focus request. Only one rest alarm is ever pending at a
 // time (scheduling a new one implicitly replaces any previous one — same PendingIntent request
 // code on the native side), so there's no id to track.
-export function scheduleRestAlarm(triggerAtMillis: number, soundEnabled: boolean): void {
-  RestAlarmNativeModule?.scheduleRestAlarm(triggerAtMillis, soundEnabled);
+// `headphonesOnly`: never play through the speaker — the sound is skipped unless headphones are
+// connected when the alarm fires, and plays on the Media stream (which Android never duplicates
+// to the speaker) instead of the Alarm stream.
+export function scheduleRestAlarm(
+  triggerAtMillis: number,
+  soundEnabled: boolean,
+  headphonesOnly: boolean,
+): void {
+  RestAlarmNativeModule?.scheduleRestAlarm(triggerAtMillis, soundEnabled, headphonesOnly);
 }
 
 export function cancelRestAlarm(): void {

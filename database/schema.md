@@ -9,6 +9,7 @@ erDiagram
         int rest_timer_enabled
         int rest_timer_seconds
         int rest_timer_sound_enabled
+        int rest_timer_headphones_only
         int schema_version
     }
 
@@ -104,6 +105,7 @@ Single-row table for the local user's preferences.
 | rest_timer_enabled        | int     | default 1 (on); whether completing a set starts the rest timer |
 | rest_timer_seconds        | int     | default 120 (2 min); rest timer length, editable in Settings as minutes (1 digit) + seconds (2 digits), must total > 0 |
 | rest_timer_sound_enabled  | int     | default 1 (on); whether the rest-complete notification plays a sound |
+| rest_timer_headphones_only | int    | default 0 (off); Android only — the sound never plays through the speaker, only connected headphones (silent otherwise) |
 | schema_version            | int     | incremented on each migration      |
 
 ---

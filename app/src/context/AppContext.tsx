@@ -73,7 +73,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!settings.rest_timer_enabled) return;
     const seconds = settings.rest_timer_seconds;
     setRestTimerEndAt(Date.now() + seconds * 1000);
-    notificationIdRef.current = await scheduleRestCompleteNotification(seconds, settings.rest_timer_sound_enabled);
+    notificationIdRef.current = await scheduleRestCompleteNotification(
+      seconds,
+      settings.rest_timer_sound_enabled,
+      settings.rest_timer_headphones_only,
+    );
   }, []);
 
   // Pre-fetch on app open so screens have data immediately

@@ -80,7 +80,7 @@ app/
       sets.ts                add/update/delete cycle_sets, mark/unmark complete (stamps completed_at; kept on unmark),
                               progression lookup, getExerciseHistory()
       settings.ts             user_settings CRUD (`rest_timer_enabled`, `rest_timer_seconds`,
-                               `rest_timer_sound_enabled`)
+                               `rest_timer_sound_enabled`, `rest_timer_headphones_only`)
       seedExercisesData.ts    AUTO-GENERATED — 873-exercise free-exercise-db data (see scripts/)
     services/
       restTimerNotifications.ts  schedule/cancel the rest-complete alert — Android delegates

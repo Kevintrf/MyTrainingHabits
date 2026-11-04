@@ -22,6 +22,7 @@ const CREATE_TABLES = `
     rest_timer_enabled        INTEGER NOT NULL DEFAULT 1,
     rest_timer_seconds        INTEGER NOT NULL DEFAULT 120,
     rest_timer_sound_enabled  INTEGER NOT NULL DEFAULT 1,
+    rest_timer_headphones_only INTEGER NOT NULL DEFAULT 0,
     schema_version            INTEGER NOT NULL DEFAULT 1
   );
 
@@ -329,6 +330,13 @@ export function initSchema(): void {
     // user_settings.rest_timer_sound_enabled added after rest_timer_enabled.
     try {
       db.execSync('ALTER TABLE user_settings ADD COLUMN rest_timer_sound_enabled INTEGER NOT NULL DEFAULT 1;');
+    } catch {
+      // already exists
+    }
+
+    // user_settings.rest_timer_headphones_only added after rest_timer_sound_enabled.
+    try {
+      db.execSync('ALTER TABLE user_settings ADD COLUMN rest_timer_headphones_only INTEGER NOT NULL DEFAULT 0;');
     } catch {
       // already exists
     }

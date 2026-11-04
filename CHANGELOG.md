@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (28)
+
+### feat: "Headphones only" option for the rest-complete sound
+After the One UI 9 update, with music playing on Galaxy Buds, the rest alert paused the music and was then heard through the phone speaker. The alert plays on Android's Alarm stream, which Android duplicates to the speaker even with headphones attached; the existing `setPreferredDevice()` pin to the headset is only a hint, and apparently not honored for alarms on that build. New Android-only Settings toggle **Headphones only** (shown under "Play sound" while sound is on, stored as `user_settings.rest_timer_headphones_only`, default off): when the alarm fires with no headphones connected, the sound is skipped (banner + vibration still happen); with headphones connected it plays on the Media stream (`USAGE_MEDIA`, without `FLAG_AUDIBILITY_ENFORCED`), which Android never routes to the speaker while headphones are attached. Passed through `scheduleRestAlarm` → `RestAlarmReceiver` → `RestAlarmService` as a new `headphonesOnly` intent extra. Headset detection also now recognizes Bluetooth LE Audio devices (`TYPE_BLE_HEADSET`/`TYPE_BLE_SPEAKER`, API 31+), which previously looked like "no headset" and fell back to the speaker. Default behavior with the toggle off is unchanged, including music pausing (not ducking) while the alert plays.
+
+---
+
 ## 2026-11-04 (27)
 
 ### feat: keep original set times when fixing older workouts

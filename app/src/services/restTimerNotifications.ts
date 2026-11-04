@@ -60,14 +60,16 @@ async function ensureNotificationPermission(): Promise<boolean> {
 // Schedules the rest-complete alert `seconds` from now. Returns a handle (needed to cancel it
 // if the timer is skipped/restarted early), or null if notification permission isn't
 // available — the in-app countdown still works either way.
+// `headphonesOnly` is Android-only (iOS gives no control over notification-sound routing).
 export async function scheduleRestCompleteNotification(
   seconds: number,
   soundEnabled: boolean,
+  headphonesOnly: boolean,
 ): Promise<string | null> {
   const granted = await ensureNotificationPermission();
 
   if (Platform.OS === 'android') {
-    scheduleRestAlarm(Date.now() + Math.max(1, seconds) * 1000, soundEnabled);
+    scheduleRestAlarm(Date.now() + Math.max(1, seconds) * 1000, soundEnabled, headphonesOnly);
     return granted ? ANDROID_ALARM_HANDLE : null;
   }
 

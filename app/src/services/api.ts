@@ -123,4 +123,7 @@ export interface UserSettings {
   rest_timer_seconds: number;
   // Whether the rest-complete notification plays a sound. On by default.
   rest_timer_sound_enabled: boolean;
+  // Android only: never play the rest-complete sound through the speaker — only through
+  // connected headphones (silent otherwise). Off by default.
+  rest_timer_headphones_only: boolean;
 }

@@ -17,6 +17,7 @@ function sanitizeSeconds(v: string): string {
 export default function SettingsScreen() {
   const [restEnabled, setRestEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [headphonesOnly, setHeadphonesOnly] = useState(false);
   const [minutesText, setMinutesText] = useState('2');
   const [secondsText, setSecondsText] = useState('00');
   const durationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
     getSettings().then((s) => {
       setRestEnabled(s.rest_timer_enabled);
       setSoundEnabled(s.rest_timer_sound_enabled);
+      setHeadphonesOnly(s.rest_timer_headphones_only);
       setMinutesText(String(Math.floor(s.rest_timer_seconds / 60)));
       setSecondsText(String(s.rest_timer_seconds % 60).padStart(2, '0'));
     });
@@ -39,6 +41,11 @@ export default function SettingsScreen() {
   function handleToggleSound(value: boolean) {
     setSoundEnabled(value);
     updateSettings({ rest_timer_sound_enabled: value });
+  }
+
+  function handleToggleHeadphonesOnly(value: boolean) {
+    setHeadphonesOnly(value);
+    updateSettings({ rest_timer_headphones_only: value });
   }
 
   // Only persists when the resulting total is > 0 — a 0:00 duration is left unsaved
@@ -136,6 +143,24 @@ export default function SettingsScreen() {
                   thumbColor="#fff"
                 />
               </View>
+
+              {Platform.OS === 'android' && soundEnabled && (
+                <>
+                  <View style={styles.cardDivider} />
+                  <View style={styles.toggleRow}>
+                    <View style={styles.toggleText}>
+                      <Text style={styles.toggleLabel}>Headphones only</Text>
+                      <Text style={styles.toggleDesc}>Never plays through the speaker — silent unless headphones are connected</Text>
+                    </View>
+                    <Switch
+                      value={headphonesOnly}
+                      onValueChange={handleToggleHeadphonesOnly}
+                      trackColor={{ false: '#E5E5E5', true: '#2D6A4F' }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                </>
+              )}
 
               {Platform.OS === 'android' && (
                 <>
