@@ -75,6 +75,7 @@ db/sets.ts
                                        unmarking keeps completed_at so it can be restored later
   deleteSet(id)
   getLastSetsForExercise(exerciseId, excludeCycleWorkoutId)   Latest logged sets, any day (set suggestions)
+  getTargetStreak(exerciseId, targetReps, excludeCycleWorkoutId)   Sessions in a row that hit target reps at one weight ("raise weight?" hint)
   getExerciseHistory(exerciseId)       Every completed set ever, most recent first (ExerciseHistoryScreen)
 
 db/program.ts
@@ -150,6 +151,15 @@ Kept deliberately minimal per how it was asked for: no note means no extra UI at
 `searchExercises`'s default order isn't alphabetical — it's `(source = 'USER') DESC, logged-set-count DESC, name`. Custom (user-created) exercises always outrank every seed-library exercise regardless of how much either has been used; among exercises with the same custom-ness, the ones with more logged sets (`cycle_sets` rows with non-null reps/weight, counted via a `LEFT JOIN` subquery) rank higher; name is only the final tiebreaker. The intent is surfacing exercises the user actually created or trains ahead of the untouched majority of the 873-exercise seed library, not literal alphabetical browsing.
 
 `filter: MuscleGroup | 'CUSTOM'` is a single mutually-exclusive selector, not two independent dimensions — `'CUSTOM'` means "user-created, any muscle group" and clears any muscle-group condition; ExercisesScreen's chip row reflects this by putting a CUSTOM chip in the same row as the muscle groups (right after ALL), not a separate filter control.
+
+## Target-Met Hint (WorkoutScreen)
+
+Under an exercise's name, a small green `trending-up` line shows when the target reps were hit on every set at one weight the last time it was done — a nudge to raise the weight — e.g. "Hit 10 reps on all sets @ 60 kg last time", or "· 3× in a row" for a streak. From `getTargetStreak(exerciseId, program_exercise_default_reps, currentCycleWorkoutId)`:
+
+- **Target** — the card's `program_exercise_default_reps`; no target, no hint.
+- **Sessions** — every workout (any day, any cycle) with at least one completed set of the exercise, newest first by latest `completed_at`, excluding the workout being viewed (same as the set suggestions).
+- **A session counts** only if *every* set row of the exercise in it is completed, each with reps ≥ target, all at the same weight (or all without one, e.g. bodyweight). A set left unchecked means the session doesn't count.
+- **Streak** — counted from the newest session until one doesn't count or used a different weight than the newest, so raising the weight starts a new streak. If the newest session doesn't count there's no hint at all.
 
 ## Set Logging Pre-fill (WorkoutScreen)
 

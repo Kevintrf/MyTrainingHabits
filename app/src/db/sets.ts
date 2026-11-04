@@ -1,5 +1,5 @@
 import { db } from './client';
-import { CycleSet, ExerciseHistoryEntry } from '../services/api';
+import { CycleSet, ExerciseHistoryEntry, TargetStreak } from '../services/api';
 
 interface SetRow {
   id: number;
@@ -114,6 +114,57 @@ export async function getLastSetsForExercise(exerciseId: number, excludeCycleWor
     [lastWorkout.cycle_workout_id, exerciseId],
   );
   return rows.map(mapSet);
+}
+
+// How many of this exercise's most recent sessions in a row met `targetReps` on every set at
+// one weight — the hint that it may be time to raise the weight. A session is a workout (any
+// day, any cycle) with at least one completed set of the exercise, ordered by its latest
+// completed_at; the workout being viewed is excluded, as in getLastSetsForExercise. A session
+// counts only if every one of its sets for the exercise was completed, each with reps >=
+// target, all at the same weight (or all without one). The streak stops at the first session
+// that doesn't count or used a different weight than the latest one, so raising the weight
+// starts a new streak. Null when the latest session didn't count (or there is none).
+export async function getTargetStreak(
+  exerciseId: number,
+  targetReps: number,
+  excludeCycleWorkoutId: number,
+): Promise<TargetStreak | null> {
+  const sessions = await db.getAllAsync<{
+    total: number;
+    done: number;
+    min_reps: number | null;
+    missing_reps: number;
+    min_weight: number | null;
+    max_weight: number | null;
+    missing_weight: number;
+  }>(
+    `SELECT COUNT(*)                                            AS total,
+            SUM(is_complete = 1 AND completed_at IS NOT NULL)   AS done,
+            MIN(reps)                                           AS min_reps,
+            SUM(reps IS NULL)                                   AS missing_reps,
+            MIN(weight_kg)                                      AS min_weight,
+            MAX(weight_kg)                                      AS max_weight,
+            SUM(weight_kg IS NULL)                              AS missing_weight
+     FROM cycle_sets
+     WHERE exercise_id = ? AND cycle_workout_id != ?
+     GROUP BY cycle_workout_id
+     HAVING done > 0
+     ORDER BY MAX(CASE WHEN is_complete = 1 THEN completed_at END) DESC, MAX(id) DESC`,
+    [exerciseId, excludeCycleWorkoutId],
+  );
+
+  let streak: TargetStreak | null = null;
+  for (const s of sessions) {
+    const allDone = s.done === s.total;
+    const repsMet = s.missing_reps === 0 && s.min_reps != null && s.min_reps >= targetReps;
+    const sameWeight = s.missing_weight === s.total || (s.missing_weight === 0 && s.min_weight === s.max_weight);
+    if (!allDone || !repsMet || !sameWeight) break;
+    const weight = s.missing_weight === s.total ? null : s.max_weight;
+    if (!streak) streak = { count: 0, weight_kg: weight };
+    else if (weight !== streak.weight_kg) break;
+    streak.count++;
+  }
+  return streak;
 }
 
 // Every completed set ever logged for this exercise, most recently finished first —

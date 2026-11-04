@@ -18,11 +18,11 @@ import { useSetTimePrompt } from '../context/SetTimePromptContext';
 import SetTimeChoiceToast from '../components/SetTimeChoiceToast';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail } from '../db/cycles';
-import { addSet, getLastSetsForExercise, markSetComplete, updateSet } from '../db/sets';
+import { addSet, getLastSetsForExercise, getTargetStreak, markSetComplete, updateSet } from '../db/sets';
 import { updateExerciseShortNote } from '../db/exercises';
 import { getSettings } from '../db/settings';
 import { suggestCompletionTime } from '../utils/setTiming';
-import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise } from '../services/api';
+import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise, TargetStreak } from '../services/api';
 
 // Stable per-exercise key within a workout — falls back to name when the source
 // exercise has been deleted (exercise_id null) so grouping doesn't collide.
@@ -135,9 +135,12 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   );
 }
 
-function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
+function ExerciseCard({ exercise, lastSets, targetStreak, onChanged, resolveCompletedAt }: {
   exercise: CycleWorkoutExercise;
   lastSets: CycleSet[];
+  // Set when last time (and maybe several times in a row) every set hit the target reps at
+  // one weight — shown as a small "maybe raise the weight" hint under the name.
+  targetStreak: TargetStreak | null;
   onChanged: () => void;
   resolveCompletedAt: ResolveCompletedAt;
 }) {
@@ -181,6 +184,16 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
           <Text style={styles.exerciseMeta}>
             {exercise.sets.length} sets{exerciseId === null ? ' · removed from library' : ''}
           </Text>
+          {targetStreak && (
+            <View style={styles.streakHint}>
+              <Ionicons name="trending-up" size={13} color="#2D6A4F" />
+              <Text style={styles.streakHintText}>
+                Hit {exercise.program_exercise_default_reps} reps on all sets
+                {targetStreak.weight_kg != null ? ` @ ${targetStreak.weight_kg} kg` : ''}
+                {targetStreak.count > 1 ? ` · ${targetStreak.count}× in a row` : ' last time'}
+              </Text>
+            </View>
+          )}
           {!!exercise.short_note && !editingNote && (
             <Text style={styles.exerciseNote}>{exercise.short_note}</Text>
           )}
@@ -257,6 +270,7 @@ export default function WorkoutScreen() {
 
   const [detail, setDetail] = useState<CycleWorkoutDetail | null>(null);
   const [lastSets, setLastSets] = useState<Record<string, CycleSet[]>>({});
+  const [targetStreaks, setTargetStreaks] = useState<Record<string, TargetStreak | null>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -271,6 +285,16 @@ export default function WorkoutScreen() {
     const map: Record<string, CycleSet[]> = {};
     d.exercises.forEach((e, i) => { map[exerciseKey(e)] = entries[i]; });
     setLastSets(map);
+
+    // Only exercises with a program target rep count can have "met the target" streaks.
+    const streaks = await Promise.all(
+      d.exercises.map((e) => (e.exercise_id !== null && e.program_exercise_default_reps != null
+        ? getTargetStreak(e.exercise_id, e.program_exercise_default_reps, cycleWorkoutId)
+        : Promise.resolve(null))),
+    );
+    const streakMap: Record<string, TargetStreak | null> = {};
+    d.exercises.forEach((e, i) => { streakMap[exerciseKey(e)] = streaks[i]; });
+    setTargetStreaks(streakMap);
 
     return d;
   }, [cycleWorkoutId]);
@@ -312,6 +336,7 @@ export default function WorkoutScreen() {
               key={exerciseKey(ex)}
               exercise={ex}
               lastSets={lastSets[exerciseKey(ex)] ?? []}
+              targetStreak={targetStreaks[exerciseKey(ex)] ?? null}
               onChanged={handleChanged}
               resolveCompletedAt={resolveCompletedAt}
             />
@@ -348,6 +373,8 @@ const styles = StyleSheet.create({
   cardHeaderText: { flex: 1 },
   exerciseName: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   exerciseMeta: { fontSize: 12, color: '#999', marginTop: 2 },
+  streakHint: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  streakHintText: { fontSize: 12, color: '#2D6A4F' },
   exerciseNote: { fontSize: 12, color: '#999', fontStyle: 'italic', marginTop: 2 },
   headerIconBtn: { padding: 6 },
   noteInput: {

@@ -73,6 +73,14 @@ export interface ExerciseHistoryEntry {
   completed_at: string;
 }
 
+// How many of the exercise's most recent sessions in a row hit the target reps on every set
+// at one unchanged weight (WorkoutScreen's "raise the weight?" hint). weight_kg is that
+// weight — null when the sets were logged without one (e.g. bodyweight).
+export interface TargetStreak {
+  count: number;
+  weight_kg: number | null;
+}
+
 export interface CycleWorkoutExercise {
   // Nullable: null means the source exercise has been deleted from the library — the
   // logged sets (and exercise_name) remain, but you can't add further sets to it.
