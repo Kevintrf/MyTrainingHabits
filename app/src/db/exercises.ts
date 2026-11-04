@@ -14,10 +14,11 @@ interface ExerciseRow {
   category: string | null;
   instructions: string | null;
   source_slug: string | null;
+  weight_options: string | null;
   created_at: string;
 }
 
-const EXERCISE_COLUMNS = 'id, name, muscle_group, type, source, notes, short_note, equipment, level, category, instructions, source_slug, created_at';
+const EXERCISE_COLUMNS = 'id, name, muscle_group, type, source, notes, short_note, equipment, level, category, instructions, source_slug, weight_options, created_at';
 
 function mapExercise(row: ExerciseRow): Exercise {
   return {
@@ -33,6 +34,7 @@ function mapExercise(row: ExerciseRow): Exercise {
     category: row.category,
     instructions: row.instructions,
     source_slug: row.source_slug,
+    weight_options: row.weight_options,
     created_at: row.created_at,
   };
 }
@@ -100,6 +102,12 @@ export async function updateExerciseNotes(id: number, notes: string): Promise<vo
 // The short one-line-ish note shown under the exercise's name on every workout day.
 export async function updateExerciseShortNote(id: number, note: string | null): Promise<void> {
   await db.runAsync('UPDATE exercises SET short_note = ? WHERE id = ?', [note?.trim() || null, id]);
+}
+
+// Which fixed weight list (utils/weightOptions.ts) the exercise's set weights are picked from;
+// null switches back to typing the weight in. Works for library and custom exercises alike.
+export async function updateExerciseWeightOptions(id: number, weightOptions: string | null): Promise<void> {
+  await db.runAsync('UPDATE exercises SET weight_options = ? WHERE id = ?', [weightOptions, id]);
 }
 
 // Exercises whose short note couldn't be migrated automatically because different program

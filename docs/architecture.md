@@ -17,10 +17,10 @@ The app runs entirely on-device. The Expo mobile app reads and writes to a local
 | Screen                    | Purpose                                                                |
 |---------------------------|--------------------------------------------------------------------------|
 | CycleScreen               | Main view — active cycle's workouts with done-checkboxes; "New Cycle" button |
-| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the exercise's latest logged reps/weight (program target reps if no history) as a grey placeholder, see below); each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
+| WorkoutScreen             | A single cycle workout — expandable exercise cards with inline set rows (reps, weight, per-set checkbox — unlogged fields show the exercise's latest logged reps/weight (program target reps if no history) as a grey placeholder, see below); for an exercise with a weight list (see Weight Lists below) the weight field opens a picker grid instead of the keyboard; each card header has guide/history shortcut icons (hidden for exercises removed from the library); long-press a card header to add/edit the same per-program-exercise note EditProgramWorkoutScreen edits (hidden if the exercise's program_exercises row no longer exists) |
 | ExercisesScreen           | Browse and search the exercise library; muscle-group filter chips plus a CUSTOM chip (right after ALL) for user-created exercises only |
 | CreateExerciseScreen      | Create a custom exercise (name, muscle group, type)                       |
-| ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — personal notes, images, and step-by-step guide (guide/images only populated for the built-in library — free-exercise-db plus the curated additions — not custom exercises); links to ExerciseHistoryScreen |
+| ExerciseDetailScreen      | Per-exercise page (tap an exercise in ExercisesScreen, or the guide icon on WorkoutScreen) — weight input choice (typed in, or one of the fixed weight lists — see Weight Lists below), personal notes, images, and step-by-step guide (guide/images only populated for the built-in library — free-exercise-db plus the curated additions — not custom exercises); links to ExerciseHistoryScreen |
 | ExerciseHistoryScreen     | Every completed set ever logged for one exercise, grouped by day, most recent first (reachable from ExerciseDetailScreen or the history icon on WorkoutScreen) |
 | ProgramScreen             | The repeating program — ordered list of workouts, tap to edit             |
 | EditProgramWorkoutScreen  | Edit a program workout's label and its exercises/default targets; long-press an exercise to add/edit a short note on its inclusion in this workout |
@@ -58,6 +58,9 @@ db/exercises.ts
                                muscle-group filter). Ranks custom exercises first, then by
                                logged-set count, name only as the final tiebreaker (see below)
   getExercise(id)             Get a single exercise
+  updateExerciseWeightOptions(id, listId | null)
+                               Set which fixed weight list (utils/weightOptions.ts) the
+                               exercise's set weights are picked from; null = typed in
   createExercise(data)        Create a custom exercise
   updateExerciseNotes(id, notes)  Save an exercise's personal notes
   getRecentExercises()        Top exercises by recent use
@@ -189,6 +192,16 @@ Each unlogged set's reps/weight fields show a suggestion via `placeholder` (grey
 - **Weight** — `lastSet.weight_kg`. Not from `program_exercises.default_weight_kg`, which exists in the schema but has no UI to set it and nothing writes to it — effectively vestigial; don't be misled by it into thinking weight pre-fill comes from there.
 
 **Marking a set complete with a field left blank takes on the shown suggestion as the real saved value** (`SetRow.handleToggle` in `WorkoutScreen.tsx`) — un-marking a set never does this, and a field the user already typed into is left exactly as entered, whether that's a plain number or something that overrides the suggestion. This is why the state seeding on mount deliberately only reads `set.reps`/`set.weight_kg` (the actually-saved value), never the suggestion — keeping "shown as a hint" and "committed to the database" as two clearly separate states until the user (or a completed checkbox) merges them.
+
+## Weight Lists (picking a set's weight instead of typing it)
+
+Some equipment only comes in fixed weights — pin-selected weight stacks and the gym's dumbbell rack — so an exercise can be switched from typing the weight to picking it from a list. Off by default; enabled per exercise under **Weight input** on ExerciseDetailScreen, stored as `exercises.weight_options` (the list's id).
+
+- **Lists** are hard-coded in `src/utils/weightOptions.ts` (`WEIGHT_OPTION_SETS`): weight stacks 2.5–44.5 kg (steps of 3.5, add-on +1.75), 5–117 kg (steps of 7, add-on +3.5) and 7.5–82.5 kg (steps of 7.5, add-on +3.75), and dumbbells 1–10 kg then 12.5–32.5 kg in 2.5s. The ids are stored data — never rename one; add a new list instead. An unknown id (e.g. from a newer backup) falls back to typing.
+- **Add-on:** a stack's add-on weight can go on top of any step. The picker (`components/WeightPickerModal.tsx`) has an add-on checkbox above the grid; the grid shows the totals, and tapping one saves it (step + add-on if checked) and closes. Toggling the add-on with a step already picked updates that pick at once. The saved value is just the total in `cycle_sets.weight_kg` — `decomposeWeight()` splits it back into step + add-on to highlight it.
+- **Suggestions** work as for typed weights: an empty set shows last time's weight in grey (outlined dashed in the grid, and it sets the add-on checkbox's starting state), and checking off an empty set saves it. A saved weight that isn't on the list (typed in before switching) is still shown and kept; the picker says so.
+- **Saving:** a pick is written immediately rather than debounced, and cancels any pending debounced reps save, which would otherwise write the old weight back.
+- **Backup:** `weight_options` is included for custom exercises (whole row) and for seed exercises (alongside notes; a seed exercise with only a weight list is exported too).
 
 ## Back-dating Sets in Older Workouts (WorkoutScreen)
 

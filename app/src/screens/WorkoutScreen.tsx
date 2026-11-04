@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,18 +10,20 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { useSetTimePrompt } from '../context/SetTimePromptContext';
 import SetTimeChoiceToast from '../components/SetTimeChoiceToast';
+import WeightPickerModal from '../components/WeightPickerModal';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail } from '../db/cycles';
 import { addSet, getLastSetsForExercise, getTargetStreak, markSetComplete, updateSet } from '../db/sets';
 import { updateExerciseShortNote } from '../db/exercises';
 import { getSettings } from '../db/settings';
 import { suggestCompletionTime } from '../utils/setTiming';
+import { WeightOptionSet, getWeightOptionSet } from '../utils/weightOptions';
 import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise, TargetStreak } from '../services/api';
 
 // Stable per-exercise key within a workout — falls back to name when the source
@@ -34,12 +36,15 @@ function exerciseKey(exercise: CycleWorkoutExercise): string {
 // cancelled the "which time?" prompt and the set should stay unchecked.
 type ResolveCompletedAt = (set: CycleSet) => Promise<{ at: string; backdated: boolean } | null>;
 
-function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
+function SetRow({ set, lastSet, defaultReps, weightOptions, onToggled, resolveCompletedAt }: {
   set: CycleSet;
   lastSet?: CycleSet;
   // The program's target rep count for this exercise — the reps suggestion only when
   // there's no previous result to suggest from (see below).
   defaultReps: number | null;
+  // The exercise's fixed weight list, if it has one: the weight is then picked from a grid
+  // (WeightPickerModal) instead of typed in.
+  weightOptions?: WeightOptionSet;
   onToggled: () => void;
   resolveCompletedAt: ResolveCompletedAt;
 }) {
@@ -49,6 +54,7 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   // something actually entered.
   const [reps, setReps] = useState(set.reps != null ? String(set.reps) : '');
   const [weight, setWeight] = useState(set.weight_kg != null ? String(set.weight_kg) : '');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { startRestTimer } = useApp();
 
@@ -71,6 +77,15 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
   function schedule(r: string, w: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => updateSet(set.id, parsedPatch(r, w)), 500);
+  }
+
+  // A pick is saved straight away rather than debounced — and replaces any still-pending typed
+  // reps save, which would otherwise write the old weight back over it.
+  function handlePickWeight(w: number | null) {
+    const v = w !== null ? String(w) : '';
+    setWeight(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    updateSet(set.id, parsedPatch(reps, v));
   }
 
   async function handleToggle() {
@@ -115,15 +130,34 @@ function SetRow({ set, lastSet, defaultReps, onToggled, resolveCompletedAt }: {
         onChangeText={(v) => { setReps(v); schedule(v, weight); }}
         autoComplete="off" textContentType="none" importantForAutofill="no"
       />
-      <TextInput
-        style={styles.setInput}
-        keyboardType="decimal-pad"
-        placeholder={weightPlaceholder}
-        placeholderTextColor="#bbb"
-        value={weight}
-        onChangeText={(v) => { setWeight(v); schedule(reps, v); }}
-        autoComplete="off" textContentType="none" importantForAutofill="no"
-      />
+      {weightOptions ? (
+        <>
+          <TouchableOpacity style={[styles.setInput, styles.weightPickerField]} onPress={() => setPickerOpen(true)}>
+            <Text style={[styles.weightPickerText, weight === '' && styles.weightPickerPlaceholder]}>
+              {weight !== '' ? weight : weightPlaceholder}
+            </Text>
+            <Ionicons name="chevron-down" size={14} color="#bbb" />
+          </TouchableOpacity>
+          <WeightPickerModal
+            visible={pickerOpen}
+            options={weightOptions}
+            value={weight !== '' && !isNaN(parseFloat(weight)) ? parseFloat(weight) : null}
+            suggested={suggestedWeight}
+            onPick={handlePickWeight}
+            onClose={() => setPickerOpen(false)}
+          />
+        </>
+      ) : (
+        <TextInput
+          style={styles.setInput}
+          keyboardType="decimal-pad"
+          placeholder={weightPlaceholder}
+          placeholderTextColor="#bbb"
+          value={weight}
+          onChangeText={(v) => { setWeight(v); schedule(reps, v); }}
+          autoComplete="off" textContentType="none" importantForAutofill="no"
+        />
+      )}
       <TouchableOpacity onPress={handleToggle} style={styles.setCheckbox}>
         <Ionicons
           name={set.is_complete ? 'checkbox' : 'square-outline'}
@@ -150,6 +184,7 @@ function ExerciseCard({ exercise, lastSets, targetStreak, onChanged, resolveComp
   const [noteDraft, setNoteDraft] = useState(exercise.short_note ?? '');
   const allDone = exercise.sets.length > 0 && exercise.sets.every((s) => s.is_complete);
   const exerciseId = exercise.exercise_id;
+  const weightOptions = getWeightOptionSet(exercise.weight_options);
 
   async function handleAddSet() {
     if (exerciseId === null) return;
@@ -246,6 +281,7 @@ function ExerciseCard({ exercise, lastSets, targetStreak, onChanged, resolveComp
               // reuse its final set rather than showing no suggestion.
               lastSet={lastSets[i] ?? lastSets[lastSets.length - 1]}
               defaultReps={exercise.program_exercise_default_reps}
+              weightOptions={weightOptions}
               onToggled={onChanged}
               resolveCompletedAt={resolveCompletedAt}
             />
@@ -299,7 +335,9 @@ export default function WorkoutScreen() {
     return d;
   }, [cycleWorkoutId]);
 
-  useEffect(() => { load().finally(() => setLoading(false)); }, [load]);
+  // Reloads on every focus, not just the first — so a change made on the exercise's guide page
+  // (e.g. switching its weight input to a weight list) shows up on returning here.
+  useFocusEffect(useCallback(() => { load().finally(() => setLoading(false)); }, [load]));
 
   const handleChanged = useCallback(async () => {
     await load();
@@ -414,6 +452,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     textAlign: 'center',
   },
+  // Same box as the typed-in field, laid out to centre the value with a small dropdown arrow.
+  weightPickerField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  weightPickerText: { fontSize: 15, color: '#1A1A1A' },
+  weightPickerPlaceholder: { color: '#bbb' },
   setCheckbox: { paddingLeft: 4 },
   addSetBtn: {
     flexDirection: 'row',

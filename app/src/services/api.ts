@@ -22,6 +22,9 @@ export interface Exercise {
   category: string | null;
   instructions: string | null;
   source_slug: string | null;
+  // Id of the fixed weight list (utils/weightOptions.ts) set weights are picked from on
+  // WorkoutScreen instead of typed in — null (the default) means typed in.
+  weight_options: string | null;
   created_at: string;
 }
 
@@ -97,6 +100,8 @@ export interface CycleWorkoutExercise {
   // exists for it — shown as a grey placeholder suggestion on each unlogged set, not
   // preloaded as a real value (see WorkoutScreen's SetRow).
   program_exercise_default_reps: number | null;
+  // The exercise's Exercise.weight_options — null if typed in, or if the exercise was deleted.
+  weight_options: string | null;
   sets: CycleSet[];
 }
 

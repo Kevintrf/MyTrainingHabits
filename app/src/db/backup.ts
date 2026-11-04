@@ -6,8 +6,9 @@ import { curatedReplacementFor } from './curatedExercises';
 // ---------------------------------------------------------------------------
 // The backup is a plain dump of every table's rows, except the seed exercise library: its
 // 885 rows are the same reference data on every install (and ~750 KB), so seed exercises are
-// written only as { id, source_slug, name, notes, short_note } — the parts the user can
-// change — and only the ones that have notes or are used by the program or history.
+// written only as { id, source_slug, name, notes, short_note, weight_options } — the parts the
+// user can change — and only the ones that have notes or a weight list, or are used by the
+// program or history.
 //
 // Import replaces all current data. Seed exercise ids aren't stable across installs (they
 // depend on what the install's library looked like when it was first seeded), so exercises
@@ -68,10 +69,10 @@ export async function exportBackup(): Promise<{ json: string; summary: BackupSum
     exercises: [
       ...(await all(`SELECT * FROM exercises WHERE source = 'USER' ORDER BY id`)),
       ...(await all(
-        `SELECT id, name, source, source_slug, notes, short_note
+        `SELECT id, name, source, source_slug, notes, short_note, weight_options
          FROM exercises
          WHERE source = 'SEED'
-           AND (notes IS NOT NULL OR short_note IS NOT NULL
+           AND (notes IS NOT NULL OR short_note IS NOT NULL OR weight_options IS NOT NULL
                 OR id IN (SELECT exercise_id FROM program_exercises)
                 OR id IN (SELECT exercise_id FROM cycle_sets WHERE exercise_id IS NOT NULL))
          ORDER BY id`,
@@ -174,7 +175,7 @@ export function importBackup(backup: BackupFile): void {
 
   db.withTransactionSync(() => {
     // Children first (FKs are enforced). Seed exercises stay — they're reference data — but
-    // lose any notes, which come back from the backup below.
+    // lose any notes and weight lists, which come back from the backup below.
     db.execSync(`
       DELETE FROM cycle_sets;
       DELETE FROM cycle_workouts;
@@ -182,7 +183,7 @@ export function importBackup(backup: BackupFile): void {
       DELETE FROM program_exercises;
       DELETE FROM program_workouts;
       DELETE FROM exercises WHERE source = 'USER';
-      UPDATE exercises SET notes = NULL, short_note = NULL;
+      UPDATE exercises SET notes = NULL, short_note = NULL, weight_options = NULL;
     `);
 
     // --- settings: the single id = 1 row ---
@@ -206,9 +207,10 @@ export function importBackup(backup: BackupFile): void {
     const renamedExercises = new Map<number, { from: string; to: string }>();
     const adoptedIds = new Set<number>();
     const restoreNotes = (ex: Row, localId: number) =>
-      db.runSync('UPDATE exercises SET notes = ?, short_note = ? WHERE id = ?', [
+      db.runSync('UPDATE exercises SET notes = ?, short_note = ?, weight_options = ? WHERE id = ?', [
         ex.notes ?? null,
         ex.short_note ?? null,
+        ex.weight_options ?? null, // absent in backups made before weight lists existed
         localId,
       ]);
     for (const ex of data.exercises) {

@@ -42,6 +42,7 @@ const CREATE_TABLES = `
     category      TEXT,
     instructions  TEXT,
     source_slug   TEXT,
+    weight_options TEXT,
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -408,7 +409,9 @@ export function initSchema(): void {
 
     // exercises columns added after the initial CREATE TABLE IF NOT EXISTS shipped —
     // add them for existing installs (no-op on fresh installs, already created above).
-    for (const column of ['notes', 'short_note', 'equipment', 'level', 'category', 'instructions', 'source_slug']) {
+    // weight_options: id of the fixed weight list (utils/weightOptions.ts) the exercise's weights
+    // are picked from on WorkoutScreen, null = typed in.
+    for (const column of ['notes', 'short_note', 'equipment', 'level', 'category', 'instructions', 'source_slug', 'weight_options']) {
       try {
         db.execSync(`ALTER TABLE exercises ADD COLUMN ${column} TEXT;`);
       } catch {

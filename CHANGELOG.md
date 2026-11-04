@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (35)
+
+### feat: pick set weights from fixed weight lists
+An exercise can now have its weights picked from a list instead of typed in, for equipment that only comes in fixed steps. Enable it per exercise in the new **Weight input** section of the exercise's guide page (book icon on a workout card, or from the Exercises tab), choosing one of: **Weight stack 2.5–44.5 kg** (2.5, 6, 9.5 … 44.5, with a +1.75 add-on), **Weight stack 5–117 kg** (5, 12, 19 … 117, with a +3.5 add-on), **Weight stack 7.5–82.5 kg** (7.5, 15, 22.5 … 82.5, with a +3.75 add-on) or **Dumbbells 1–32.5 kg** (1–10, then 12.5 … 32.5). "Type it in" stays the default. On a workout, the weight field of such an exercise opens a grid of the list's weights; an **Add-on** checkbox (stacks only) adds the add-on weight on top of any step, and the grid shows the totals. Tapping a weight saves it and closes the picker; **Clear** empties the field. The workout screen now reloads when you return to it, so switching an exercise from its guide page takes effect right away. Last time's weight still shows in grey, is outlined in the grid and is saved when an empty set is checked off, like before. Weights typed in before switching are kept and shown. Stored as the new `exercises.weight_options` column (the list's id); the lists live in `src/utils/weightOptions.ts`. Backups include the setting, and older backups still import.
+
+---
+
 ## 2026-11-04 (34)
 
 ### feat: guide page shows the muscles an exercise works

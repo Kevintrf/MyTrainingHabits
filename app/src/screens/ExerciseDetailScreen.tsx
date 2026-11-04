@@ -3,13 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView,
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { deleteExercise, getExercise, updateExerciseNotes } from '../db/exercises';
+import { deleteExercise, getExercise, updateExerciseNotes, updateExerciseWeightOptions } from '../db/exercises';
 import { ExercisesStackParamList } from '../navigation/RootNavigator';
 import { Exercise } from '../services/api';
 import { EXERCISE_IMAGES } from '../assets/exerciseImages';
 import { getExerciseMuscles } from '../db/exerciseMuscles';
 import MuscleMap, { MUSCLE_COLORS } from '../components/MuscleMap';
 import { showAlert } from '../utils/alert';
+import { WEIGHT_OPTION_SETS, describeWeightOptionSet } from '../utils/weightOptions';
 
 const IMAGE_WIDTH = Dimensions.get('window').width - 40;
 // Inside a card (14px padding each side), capped so the figures don't get huge on tablets.
@@ -46,6 +47,12 @@ export default function ExerciseDetailScreen() {
     setNotes(v);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { updateExerciseNotes(exerciseId, v); }, 600);
+  }
+
+  async function handleWeightOptionsChange(id: string | null) {
+    if (!exercise || exercise.weight_options === id) return;
+    setExercise({ ...exercise, weight_options: id });
+    await updateExerciseWeightOptions(exerciseId, id);
   }
 
   function handleDelete() {
@@ -102,6 +109,31 @@ export default function ExerciseDetailScreen() {
           <Text style={styles.historyRowText}>View history</Text>
           <Ionicons name="chevron-forward" size={18} color="#ccc" />
         </TouchableOpacity>
+
+        <Text style={styles.sectionHeading}>WEIGHT INPUT</Text>
+        <View style={[styles.card, styles.optionsCard]}>
+          {[{ id: null, name: 'Type it in', detail: 'Any weight, entered with the keyboard' },
+            ...WEIGHT_OPTION_SETS.map((o) => ({ id: o.id, name: o.name, detail: describeWeightOptionSet(o) }))].map((o, i) => {
+            const selected = (exercise.weight_options ?? null) === o.id;
+            return (
+              <TouchableOpacity
+                key={o.id ?? 'manual'}
+                style={[styles.optionRow, i > 0 && styles.optionRowBorder]}
+                onPress={() => handleWeightOptionsChange(o.id)}
+              >
+                <Ionicons
+                  name={selected ? 'radio-button-on' : 'radio-button-off'}
+                  size={20}
+                  color={selected ? '#2D6A4F' : '#ccc'}
+                />
+                <View style={styles.optionText}>
+                  <Text style={styles.optionName}>{o.name}</Text>
+                  <Text style={styles.optionDetail}>{o.detail}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         <Text style={styles.sectionHeading}>NOTES</Text>
         <View style={styles.card}>
@@ -221,6 +253,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  optionsCard: { paddingVertical: 4 },
+  optionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+  optionRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5E5' },
+  optionText: { flex: 1 },
+  optionName: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  optionDetail: { fontSize: 12, color: '#999', marginTop: 2 },
   notesInput: {
     minHeight: 100,
     fontSize: 15,

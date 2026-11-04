@@ -25,6 +25,7 @@ erDiagram
         string category
         string instructions
         string source_slug
+        string weight_options
         timestamp created_at
     }
 
@@ -127,6 +128,7 @@ The exercise library. Includes both built-in seed exercises and user-created one
 | category      | text      | nullable; free-exercise-db's category (`strength`, `stretching`, `cardio`, `powerlifting`, `olympic weightlifting`, `strongman`, `plyometrics`) — richer than `type`, null for user-created exercises |
 | instructions  | text      | nullable; step-by-step guide, one step per line — null for user-created exercises |
 | source_slug   | text      | nullable; free-exercise-db's id (e.g. `Barbell_Squat`), or an `MTH_`-prefixed id for the curated additions (`scripts/extra-exercises.json`), used as the key into the bundled image manifest (`src/assets/exerciseImages.ts`) — null for user-created exercises |
+| weight_options | text     | nullable; id of a fixed weight list from `app/src/utils/weightOptions.ts` (e.g. `stack-2.5-44.5`, `dumbbells-1-32.5`) — set weights for the exercise are then picked from that list on WorkoutScreen instead of typed in. Null = typed in (default). Set per exercise on ExerciseDetailScreen |
 | created_at    | timestamp |                                                     |
 
 **Exercise library import:** `SEED`-sourced exercises are bulk-imported from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (873 exercises, public domain) plus 12 hand-curated additions (`scripts/extra-exercises.json`) rather than hand-seeded — see `scripts/import-free-exercise-db.py`. Images can't be stored in SQLite as bundled local assets (Metro requires static `require()` calls); they're copied into `app/assets/exercises/<slug>/` (curated additions: `app/assets/exercises-extra/<slug>/`) and looked up via the generated `EXERCISE_IMAGES` manifest keyed by `source_slug`, not through the database.
