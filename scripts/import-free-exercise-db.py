@@ -18,7 +18,8 @@ or reuse free-exercise-db images by path. Edit that JSON and re-run to change th
 
 Produces:
   - app/src/db/seedExercisesData.ts   structured exercise data (name, muscle group,
-                                       type, equipment, level, category, instructions)
+                                       type, equipment, level, category, instructions,
+                                       primary/secondary muscles)
   - app/assets/exercises/<slug>/*.jpg  copied exercise images
   - app/src/assets/exerciseImages.ts   static require() manifest mapping slug -> images
                                        (Metro needs static string-literal requires, so
@@ -100,6 +101,11 @@ MUSCLE_MAP = {
 }
 
 
+# Every muscle name free-exercise-db uses — also the keys of MUSCLE_INFO in app/src/assets/muscles.ts
+# and the muscles the guide-page body map (app/src/assets/bodyMap.ts) can highlight.
+MUSCLES = set(MUSCLE_MAP)
+
+
 def map_muscle_group(primary_muscles):
     if not primary_muscles:
         return "OTHER"
@@ -128,6 +134,18 @@ def ts_string_list(values):
     return "[" + ", ".join(ts_string(v) for v in values) + "]"
 
 
+def ts_string_map(mapping):
+    return "{ " + ", ".join(f"{ts_string(k)}: {ts_string(v)}" for k, v in mapping.items()) + " }"
+
+
+def check_muscles(primary, secondary):
+    problems = [f"unknown muscle {m!r}" for m in primary + secondary if m not in MUSCLES]
+    if not primary:
+        problems.append("no primary muscles")
+    problems += [f"muscle {m!r} is both primary and secondary" for m in set(primary) & set(secondary)]
+    return problems
+
+
 def load_extras(taken_slugs, taken_names):
     """Loads and sanity-checks scripts/extra-exercises.json. Run after the upstream images are
     copied, since curated entries may reuse those by path."""
@@ -151,6 +169,9 @@ def load_extras(taken_slugs, taken_names):
             problems.append(f"unknown type {ex['type']!r}")
         if not ex.get("instructions"):
             problems.append("no instructions")
+        problems += check_muscles(ex.get("primary_muscles") or [], ex.get("secondary_muscles") or [])
+        tagged = set(ex.get("primary_muscles") or []) | set(ex.get("secondary_muscles") or [])
+        problems += [f"muscle_details for untagged muscle {m!r}" for m in ex.get("muscle_details") or {} if m not in tagged]
         problems += [f"missing image {rel}" for rel in ex["images"] if not (ASSETS_DIR / rel).is_file()]
         if problems:
             raise SystemExit(f"{EXTRA_JSON.name}: {ex['slug']}: " + "; ".join(problems))
@@ -184,10 +205,16 @@ def main():
         level = ex.get("level") or "beginner"
         category = ex.get("category") or "strength"
         instructions = "\n".join(ex.get("instructions") or []) or None
+        primary = ex.get("primaryMuscles") or []
+        # A few upstream entries list a primary muscle again as secondary — drop the repeat.
+        secondary = [m for m in ex.get("secondaryMuscles") or [] if m not in primary]
+        problems = check_muscles(primary, secondary)
+        if problems:
+            raise SystemExit(f"{slug}: " + "; ".join(problems) + " — update MUSCLE_MAP and muscles.ts")
 
         data_entries.append(
             "  { slug: %s, name: %s, muscle_group: %s, type: %s, equipment: %s, "
-            "level: %s, category: %s, instructions: %s }"
+            "level: %s, category: %s, instructions: %s, primary_muscles: %s, secondary_muscles: %s }"
             % (
                 ts_string(slug),
                 ts_string(name),
@@ -197,6 +224,8 @@ def main():
                 ts_string(level),
                 ts_string(category),
                 ts_string_or_null(instructions),
+                ts_string_list(primary),
+                ts_string_list(secondary),
             )
         )
 
@@ -219,7 +248,8 @@ def main():
     for ex in extras:
         data_entries.append(
             "  { slug: %s, name: %s, muscle_group: %s, type: %s, equipment: %s, "
-            "level: %s, category: %s, instructions: %s, replaces_custom: %s }"
+            "level: %s, category: %s, instructions: %s, primary_muscles: %s, secondary_muscles: %s, "
+            "muscle_details: %s, replaces_custom: %s }"
             % (
                 ts_string(ex["slug"]),
                 ts_string(ex["name"]),
@@ -229,6 +259,9 @@ def main():
                 ts_string(ex["level"]),
                 ts_string(ex["category"]),
                 ts_string("\n".join(ex["instructions"])),
+                ts_string_list(ex["primary_muscles"]),
+                ts_string_list(ex.get("secondary_muscles") or []),
+                ts_string_map(ex.get("muscle_details") or {}),
                 ts_string_list(ex.get("replaces_custom") or []),
             )
         )
@@ -243,6 +276,7 @@ def main():
         "// (https://github.com/yuhonas/free-exercise-db, public domain), followed by the\n"
         "// hand-curated additions in scripts/extra-exercises.json. Do not hand-edit —\n"
         "// edit that JSON or re-run the script if the source dataset changes.\n\n"
+        "import { MuscleKey } from '../assets/muscles';\n\n"
         "export interface SeedExerciseData {\n"
         "  slug: string;\n"
         "  name: string;\n"
@@ -252,6 +286,12 @@ def main():
         "  level: string;\n"
         "  category: string;\n"
         "  instructions: string | null;\n"
+        "  // free-exercise-db muscle names (keys of MUSCLE_INFO in assets/muscles.ts).\n"
+        "  primary_muscles: MuscleKey[];\n"
+        "  secondary_muscles: MuscleKey[];\n"
+        "  // Hand-curated additions only: a narrower anatomy line for some of this exercise's\n"
+        "  // muscles, shown instead of MUSCLE_INFO's general one (e.g. just the side delt).\n"
+        "  muscle_details?: Partial<Record<MuscleKey, string>>;\n"
         "  // Hand-curated additions only: names of the custom exercises this entry replaces. A\n"
         "  // custom exercise with one of these names becomes this library entry in place, keeping\n"
         "  // its id (see promoteCustomExercises() in schema.ts and importBackup() in backup.ts).\n"

@@ -1,5 +1,5 @@
 {
-  "about": "Hand-curated additions to the built-in exercise library, merged after the free-exercise-db data by import-free-exercise-db.py. Each started out as a custom exercise on the phone; replaces_custom lists those custom names, and on launch a custom exercise with one of them becomes this library entry in place (same id, so its program, history and notes stay attached). Image paths are relative to app/assets: exercises-extra/ holds images made for these entries (3:2 JPEGs; image_sources says where each came from), exercises/ paths reuse free-exercise-db's own photos. Guide text is compiled from the pages in each entry's sources.",
+  "about": "Hand-curated additions to the built-in exercise library, merged after the free-exercise-db data by import-free-exercise-db.py. Each started out as a custom exercise on the phone; replaces_custom lists those custom names, and on launch a custom exercise with one of them becomes this library entry in place (same id, so its program, history and notes stay attached). Image paths are relative to app/assets: exercises-extra/ holds images made for these entries (3:2 JPEGs; image_sources says where each came from), exercises/ paths reuse free-exercise-db's own photos. Guide text is compiled from the pages in each entry's sources. primary_muscles/secondary_muscles use free-exercise-db's muscle names; muscle_details optionally narrows the anatomy line shown for one of them on the guide page (default: MUSCLE_INFO in app/src/assets/muscles.ts).",
   "exercises": [
     {
       "slug": "MTH_Machine_Chest_Press",
@@ -10,6 +10,12 @@
       "equipment": "machine",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["shoulders", "triceps"],
+      "muscle_details": {
+        "chest": "Pectoralis major, mostly the sternal (mid/lower) head",
+        "shoulders": "Anterior (front) deltoid"
+      },
       "instructions": [
         "Adjust the seat so the handles line up with the middle of your chest and select the weight. Sit with your back flat against the backrest and your feet flat on the floor.",
         "Grip the handles with a palms-down (or neutral) grip. Pull your shoulder blades back and down against the pad and keep your chest up. This will be your starting position.",
@@ -42,6 +48,11 @@
       "equipment": "machine",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["shoulders"],
+      "secondary_muscles": ["triceps", "traps"],
+      "muscle_details": {
+        "shoulders": "Anterior (front) and lateral (side) deltoid"
+      },
       "instructions": [
         "Adjust the seat so the handles start at about shoulder height and select the weight. Sit with your back flat against the backrest and your feet flat on the floor.",
         "Grip the handles with your elbows bent under them, pointing down and slightly forward rather than flared straight out to the sides. Brace your core. This will be your starting position.",
@@ -74,6 +85,12 @@
       "equipment": "machine",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["shoulders", "triceps"],
+      "muscle_details": {
+        "chest": "Pectoralis major, with extra emphasis on the clavicular (upper) head",
+        "shoulders": "Anterior (front) deltoid"
+      },
       "instructions": [
         "Machine: adjust the seat so the handles line up with your upper chest and select the weight. Sit with your back flat against the incline pad and grip the handles.",
         "Smith machine: set an adjustable bench to about 30-45° and position it so the bar comes down to your upper chest. If the machine has safety stops, set them to catch the bar just below that point. Lie back, grip the bar slightly wider than shoulder-width and unrack it by rotating it off the hooks.",
@@ -106,6 +123,11 @@
       "equipment": "machine / cable",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["shoulders"],
+      "secondary_muscles": ["traps"],
+      "muscle_details": {
+        "shoulders": "Lateral (side) deltoid, with supraspinatus helping start the lift"
+      },
       "instructions": [
         "Machine: adjust the seat so your shoulders line up with the machine's pivot points and the pads rest against the outside of your arms, just above the elbows. Sit tall, with your chest against the chest pad if the machine has one, and select the weight.",
         "Seated cable (the photos show it standing - the arm movement is the same): set a pulley to its lowest position and attach a single handle. Sit sideways on a bench next to the machine and hold the handle in the hand farthest from it, so the cable runs across the front of your body.",
@@ -140,6 +162,11 @@
       "equipment": "cable / dumbbell",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["triceps"],
+      "secondary_muscles": [],
+      "muscle_details": {
+        "triceps": "Triceps brachii, all three heads, with the arm overhead stretching the long head the most"
+      },
       "instructions": [
         "Set an adjustable bench upright (about 80-90°, or a slight incline) and sit with your back flat against the pad and your feet flat on the floor. The back support keeps your lower back from arching as the weight goes overhead.",
         "Cable: place the bench in front of a low pulley with a rope attached, facing away from the machine. Hold the rope behind your neck with a neutral grip (palms facing each other), sit back against the pad and press the rope up to straight arms.",
@@ -174,6 +201,11 @@
       "equipment": "cable",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps", "middle back", "shoulders"],
+      "muscle_details": {
+        "shoulders": "Posterior (rear) deltoid"
+      },
       "instructions": [
         "Adjust the thigh pad so it fits snugly on top of your thighs and keeps you from lifting off the seat. Select the weight.",
         "Grip the bar with an overhand grip, hands slightly wider than shoulder-width (a medium grip), and sit down with your thighs under the pad and your arms fully extended.",
@@ -204,6 +236,11 @@
       "equipment": "machine / dumbbell",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["middle back"],
+      "secondary_muscles": ["lats", "biceps", "shoulders"],
+      "muscle_details": {
+        "shoulders": "Posterior (rear) deltoid"
+      },
       "instructions": [
         "Machine: adjust the seat and chest pad so the handles are at about chest height and you can only just reach them with straight arms. Sit with your chest against the pad and grip the handles with a neutral or overhand grip.",
         "Dumbbells: set an incline bench to about 45° and lie face down on it with your chest against the pad and your feet planted on the floor, letting a dumbbell hang straight down from each hand.",
@@ -238,6 +275,13 @@
       "equipment": "machine",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["shoulders"],
+      "secondary_muscles": ["middle back", "traps"],
+      "muscle_details": {
+        "shoulders": "Posterior (rear) deltoid",
+        "traps": "Middle trapezius",
+        "middle back": "Rhomboids, middle trapezius, infraspinatus, teres minor"
+      },
       "instructions": [
         "Sit facing the machine with your chest against the pad. Adjust the seat so the handles are at shoulder height, and set the handles to their front position (on a pec deck, the reverse-fly setting) for a long range of motion.",
         "Grip the handles with your palms facing each other or facing down, arms straight out in front of you with a slight bend in the elbows. This will be your starting position.",
@@ -267,6 +311,11 @@
       "equipment": "machine / cable",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["chest"],
+      "secondary_muscles": ["shoulders"],
+      "muscle_details": {
+        "shoulders": "Anterior (front) deltoid"
+      },
       "instructions": [
         "Machine (pec deck): adjust the seat so the handles are at about chest height, with your upper arms close to parallel to the floor. Sit with your back flat against the pad and grip the handles with your arms out to the sides.",
         "Cable: attach a single handle to each side of a cable crossover, set at about shoulder height or higher. Grip the handles, step forward until the cables are under tension and lean slightly forward in a staggered stance.",
@@ -302,6 +351,11 @@
       "equipment": "cable / machine",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["lats"],
+      "secondary_muscles": ["biceps", "middle back", "forearms"],
+      "muscle_details": {
+        "biceps": "Brachialis and brachioradialis work hard with palms facing each other, alongside biceps brachii"
+      },
       "instructions": [
         "Neutral-grip pulldown: attach a neutral-grip handle (palms facing each other) to the pulldown cable, adjust the thigh pad so it holds you down, and sit with your arms fully extended.",
         "Assisted pull-up: select the assistance - on an assisted pull-up machine, more weight means more help. Grip the handles (neutral handles if the machine has them, otherwise overhand and slightly wider than shoulder-width), then step or kneel onto the platform and let your weight push it down until you hang with your arms fully extended.",
@@ -335,6 +389,11 @@
       "equipment": "dumbbell",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["biceps"],
+      "secondary_muscles": ["forearms"],
+      "muscle_details": {
+        "biceps": "Biceps brachii, with the arm behind the body stretching the long head the most"
+      },
       "instructions": [
         "Set an adjustable bench to an incline of about 45-60° and sit back against it with a dumbbell in each hand and your feet flat on the floor.",
         "Let your arms hang straight down from your shoulders with your palms facing forward and your elbows close to your torso. This will be your starting position.",
@@ -363,6 +422,11 @@
       "equipment": "dumbbell",
       "level": "beginner",
       "category": "strength",
+      "primary_muscles": ["shoulders"],
+      "secondary_muscles": ["traps"],
+      "muscle_details": {
+        "shoulders": "Lateral (side) deltoid, with supraspinatus helping start the lift"
+      },
       "instructions": [
         "Stand tall holding a dumbbell in each hand at your sides, palms facing your body, feet about hip-width apart and a slight bend in your elbows.",
         "Brace your core and pull your shoulders down and back. This will be your starting position.",

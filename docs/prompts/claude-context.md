@@ -84,13 +84,17 @@ app/
       seedExercisesData.ts    AUTO-GENERATED — 885-exercise library: free-exercise-db + the curated
                                additions in scripts/extra-exercises.json (see scripts/)
       curatedExercises.ts     curated entries that replace custom exercises (promoted on launch)
+      exerciseMuscles.ts      primary/secondary muscles of a library exercise, by source_slug
     services/
       restTimerNotifications.ts  schedule/cancel the rest-complete alert — Android delegates
                                   to modules/rest-alarm, iOS uses expo-notifications directly
     assets/
       exerciseImages.ts    AUTO-GENERATED — static require() manifest, keyed by exercise slug
+      bodyMap.ts           AUTO-GENERATED (scripts/import-body-map.py) — front/back body SVG paths
+      muscles.ts           MUSCLE_INFO: anatomy + function of each free-exercise-db muscle name
     components/
       RestTimerBanner.tsx  global floating countdown, mounted above RootNavigator
+      MuscleMap.tsx        front/back body with primary/secondary muscles highlighted
     context/AppContext.tsx  global state: userId, activeCycle, refreshCycle(), startNewCycle(),
                              restTimerEndAt, startRestTimer(), cancelRestTimer()
     navigation/RootNavigator.tsx  bottom tabs (Cycle, Program, Exercises, Settings) + stacks
@@ -102,7 +106,7 @@ app/
       EditProgramWorkoutScreen  edit a program workout's label/exercises/default targets
       ExercisesScreen         search/browse the exercise library, muscle group filter
       CreateExerciseScreen    create a custom exercise
-      ExerciseDetailScreen    notes, images, guide for one exercise
+      ExerciseDetailScreen    notes, images, guide, muscles worked (body map) for one exercise
       ExerciseHistoryScreen   every completed set for one exercise, grouped by day
       SettingsScreen          rest timer on/off toggle + duration (minutes/seconds inputs)
                               + notification sound on/off toggle

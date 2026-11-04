@@ -7,9 +7,13 @@ import { deleteExercise, getExercise, updateExerciseNotes } from '../db/exercise
 import { ExercisesStackParamList } from '../navigation/RootNavigator';
 import { Exercise } from '../services/api';
 import { EXERCISE_IMAGES } from '../assets/exerciseImages';
+import { getExerciseMuscles } from '../db/exerciseMuscles';
+import MuscleMap, { MUSCLE_COLORS } from '../components/MuscleMap';
 import { showAlert } from '../utils/alert';
 
 const IMAGE_WIDTH = Dimensions.get('window').width - 40;
+// Inside a card (14px padding each side), capped so the figures don't get huge on tablets.
+const MUSCLE_MAP_WIDTH = Math.min(IMAGE_WIDTH - 28, 360);
 
 function titleCase(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -65,6 +69,7 @@ export default function ExerciseDetailScreen() {
 
   const images = exercise.source_slug ? EXERCISE_IMAGES[exercise.source_slug] ?? [] : [];
   const steps = exercise.instructions ? exercise.instructions.split('\n').filter(Boolean) : [];
+  const muscles = getExerciseMuscles(exercise.source_slug);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -140,6 +145,35 @@ export default function ExerciseDetailScreen() {
           <View style={[styles.card, styles.placeholderCard]}>
             <Ionicons name="book-outline" size={28} color="#ccc" />
             <Text style={styles.placeholderText}>No guide available</Text>
+          </View>
+        )}
+
+        <Text style={styles.sectionHeading}>MUSCLES WORKED</Text>
+        {muscles.length > 0 ? (
+          <View style={styles.card}>
+            <MuscleMap
+              primary={muscles.filter((m) => m.role === 'primary').map((m) => m.key)}
+              secondary={muscles.filter((m) => m.role === 'secondary').map((m) => m.key)}
+              width={MUSCLE_MAP_WIDTH}
+            />
+            {muscles.map((m) => (
+              <View key={m.key} style={styles.muscleRow}>
+                <View style={[styles.muscleSwatch, { backgroundColor: MUSCLE_COLORS[m.role] }]} />
+                <View style={styles.muscleText}>
+                  <View style={styles.muscleNameRow}>
+                    <Text style={styles.muscleName}>{m.name}</Text>
+                    <Text style={styles.muscleRole}>{m.role === 'primary' ? 'PRIMARY' : 'SECONDARY'}</Text>
+                  </View>
+                  <Text style={styles.muscleAnatomy}>{m.anatomy}</Text>
+                  <Text style={styles.muscleAction}>{m.action}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.card, styles.placeholderCard]}>
+            <Ionicons name="body-outline" size={28} color="#ccc" />
+            <Text style={styles.placeholderText}>No muscle info available</Text>
           </View>
         )}
 
@@ -221,6 +255,21 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   stepText: { flex: 1, fontSize: 14, color: '#1A1A1A', lineHeight: 20 },
+  muscleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E5E5',
+  },
+  muscleSwatch: { width: 12, height: 12, borderRadius: 3, marginTop: 4 },
+  muscleText: { flex: 1 },
+  muscleNameRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  muscleName: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  muscleRole: { fontSize: 11, fontWeight: '700', color: '#999', letterSpacing: 0.5 },
+  muscleAnatomy: { fontSize: 14, color: '#1A1A1A', lineHeight: 20, marginTop: 2 },
+  muscleAction: { fontSize: 13, color: '#777', lineHeight: 18, marginTop: 2 },
   deleteBtn: { alignItems: 'center', marginTop: 28 },
   deleteBtnText: { color: '#e74c3c', fontWeight: '600', fontSize: 14 },
 });

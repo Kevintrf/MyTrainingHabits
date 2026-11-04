@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (34)
+
+### feat: guide page shows the muscles an exercise works
+Exercise guide pages have a new **Muscles worked** section. It shows a front and back body drawing with the primary muscles in dark green and the secondary ones in light green, and lists each muscle with its anatomical names and what it does, e.g. "Lats: Latissimus dorsi, teres major. Pull the arms down and back toward the body." The muscles come from free-exercise-db's `primaryMuscles`/`secondaryMuscles`, which the import used to drop and now writes into `seedExercisesData.ts` for all 885 library exercises. The 12 curated exercises got theirs by hand in `extra-exercises.json`, with narrower anatomy where the general one is too broad (lateral raises name the side delt, rows and reverse flies the rear delt, the incline press the upper chest). Custom exercises show a "No muscle info available" placeholder. The body drawing is the SVG path data from react-native-body-highlighter (MIT), regrouped under free-exercise-db's muscle names by the new `scripts/import-body-map.py` into `src/assets/bodyMap.ts`, with its upper-back region split so lats and middle back can light up separately. Muscle descriptions live in `src/assets/muscles.ts`. **Adds the native dependency `react-native-svg`, so the app needs a native rebuild.**
+
+---
+
 ## 2026-11-04 (33)
 
 ### feat: custom exercises became library exercises with photos and guides
