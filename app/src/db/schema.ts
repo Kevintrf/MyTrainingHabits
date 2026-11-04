@@ -35,6 +35,7 @@ const CREATE_TABLES = `
                     CHECK (type IN ('STRENGTH', 'CARDIO', 'BODYWEIGHT')),
     source        TEXT NOT NULL DEFAULT 'USER' CHECK (source IN ('SEED', 'USER')),
     notes         TEXT,
+    short_note    TEXT,
     equipment     TEXT,
     level         TEXT,
     category      TEXT,
@@ -57,7 +58,7 @@ const CREATE_TABLES = `
     default_sets         INTEGER NOT NULL DEFAULT 3,
     default_reps         INTEGER,
     default_weight_kg    REAL,
-    notes                TEXT
+    notes                TEXT  -- legacy, see migrateProgramExerciseNotes()
   );
 
   CREATE TABLE IF NOT EXISTS cycles (
@@ -185,6 +186,37 @@ function renameSeedExercises(): void {
   }
 }
 
+// The short note shown under an exercise used to live on program_exercises (one per program
+// workout the exercise appears in) and now lives on exercises.short_note (one per exercise,
+// shown on every day). Moves the old notes over wherever that's unambiguous — an exercise
+// whose day notes (plus any short_note it already has) all say the same thing — and clears
+// them. Exercises left with differing notes on different days are conflicts the user picks
+// between on startup (see getShortNoteConflicts / NoteConflictPrompt). Runs every launch;
+// a no-op once no program_exercises.notes remain.
+function migrateProgramExerciseNotes(): void {
+  // Treat blank/whitespace-only notes as no note at all.
+  db.execSync(`UPDATE program_exercises SET notes = NULL WHERE notes IS NOT NULL AND TRIM(notes) = '';`);
+
+  const rows = db.getAllSync<{ exercise_id: number; note: string; short_note: string | null }>(
+    `SELECT DISTINCT pe.exercise_id, TRIM(pe.notes) AS note, e.short_note
+     FROM program_exercises pe JOIN exercises e ON e.id = pe.exercise_id
+     WHERE pe.notes IS NOT NULL`,
+  );
+  const byExercise = new Map<number, Set<string>>();
+  for (const row of rows) {
+    if (!byExercise.has(row.exercise_id)) {
+      byExercise.set(row.exercise_id, new Set(row.short_note?.trim() ? [row.short_note.trim()] : []));
+    }
+    byExercise.get(row.exercise_id)!.add(row.note);
+  }
+  for (const [exerciseId, notes] of byExercise) {
+    if (notes.size !== 1) continue;
+    const [note] = notes;
+    db.runSync('UPDATE exercises SET short_note = ? WHERE id = ?', [note, exerciseId]);
+    db.runSync('UPDATE program_exercises SET notes = NULL WHERE exercise_id = ?', [exerciseId]);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // initSchema — call once on app start, before any queries are made
 // ---------------------------------------------------------------------------
@@ -296,7 +328,7 @@ export function initSchema(): void {
 
     // exercises columns added after the initial CREATE TABLE IF NOT EXISTS shipped —
     // add them for existing installs (no-op on fresh installs, already created above).
-    for (const column of ['notes', 'equipment', 'level', 'category', 'instructions', 'source_slug']) {
+    for (const column of ['notes', 'short_note', 'equipment', 'level', 'category', 'instructions', 'source_slug']) {
       try {
         db.execSync(`ALTER TABLE exercises ADD COLUMN ${column} TEXT;`);
       } catch {
@@ -341,9 +373,9 @@ export function initSchema(): void {
       // already exists
     }
 
-    // program_exercises.notes added after the initial table shipped — a short free-text note
-    // on an exercise's inclusion in a specific program workout (e.g. "start light"), separate
-    // from exercises.notes (the exercise's own general notes).
+    // program_exercises.notes added after the initial table shipped — originally a short
+    // per-program-workout note. Superseded by exercises.short_note (one note per exercise,
+    // shared by every day); kept only so migrateProgramExerciseNotes() can move old notes over.
     try {
       db.execSync('ALTER TABLE program_exercises ADD COLUMN notes TEXT;');
     } catch {
@@ -363,5 +395,6 @@ export function initSchema(): void {
 
     seedExercises();
     renameSeedExercises();
+    migrateProgramExerciseNotes();
   });
 }

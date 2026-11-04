@@ -13,13 +13,13 @@ interface ProgramRow {
   default_sets: number | null;
   default_reps: number | null;
   default_weight_kg: number | null;
-  notes: string | null;
+  short_note: string | null;
 }
 
 const PROGRAM_QUERY = `
   SELECT pw.id AS workout_id, pw.label AS workout_label, pw.order_index AS workout_order,
          pe.id AS pe_id, pe.exercise_id, e.name AS exercise_name, pe.order_index AS pe_order,
-         pe.default_sets, pe.default_reps, pe.default_weight_kg, pe.notes
+         pe.default_sets, pe.default_reps, pe.default_weight_kg, e.short_note
   FROM program_workouts pw
   LEFT JOIN program_exercises pe ON pe.program_workout_id = pw.id
   LEFT JOIN exercises e ON e.id = pe.exercise_id
@@ -49,7 +49,7 @@ function groupProgramRows(rows: ProgramRow[]): ProgramWorkout[] {
         default_sets: row.default_sets!,
         default_reps: row.default_reps,
         default_weight_kg: row.default_weight_kg,
-        notes: row.notes,
+        short_note: row.short_note,
       };
       workout.exercises.push(exercise);
     }
@@ -129,21 +129,20 @@ export async function addExerciseToProgramWorkout(
 
 export async function updateProgramExercise(
   id: number,
-  patch: { default_sets?: number; default_reps?: number | null; default_weight_kg?: number | null; notes?: string | null },
+  patch: { default_sets?: number; default_reps?: number | null; default_weight_kg?: number | null },
 ): Promise<void> {
-  const existing = await db.getFirstAsync<{ default_sets: number; default_reps: number | null; default_weight_kg: number | null; notes: string | null }>(
-    'SELECT default_sets, default_reps, default_weight_kg, notes FROM program_exercises WHERE id = ?',
+  const existing = await db.getFirstAsync<{ default_sets: number; default_reps: number | null; default_weight_kg: number | null }>(
+    'SELECT default_sets, default_reps, default_weight_kg FROM program_exercises WHERE id = ?',
     [id],
   );
   if (!existing) return;
 
   await db.runAsync(
-    'UPDATE program_exercises SET default_sets = ?, default_reps = ?, default_weight_kg = ?, notes = ? WHERE id = ?',
+    'UPDATE program_exercises SET default_sets = ?, default_reps = ?, default_weight_kg = ? WHERE id = ?',
     [
       patch.default_sets !== undefined ? patch.default_sets : existing.default_sets,
       patch.default_reps !== undefined ? patch.default_reps : existing.default_reps,
       patch.default_weight_kg !== undefined ? patch.default_weight_kg : existing.default_weight_kg,
-      patch.notes !== undefined ? patch.notes : existing.notes,
       id,
     ],
   );

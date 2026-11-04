@@ -10,7 +10,11 @@ export interface Exercise {
   muscle_group: MuscleGroup;
   type: ExerciseType;
   source: ExerciseSource;
+  // Long-form general notes, edited on ExerciseDetailScreen.
   notes: string | null;
+  // Short note shown under the exercise's name on every workout day it appears in (program
+  // editor and live workouts) — one per exercise, not per day.
+  short_note: string | null;
   // The following are only populated for exercises imported from free-exercise-db
   // (source_slug non-null) — null for user-created custom exercises.
   equipment: string | null;
@@ -30,9 +34,8 @@ export interface ProgramExercise {
   default_sets: number;
   default_reps: number | null;
   default_weight_kg: number | null;
-  // Short free-text note on this exercise's inclusion in this specific program workout (e.g.
-  // "start light"), separate from the exercise's own general notes (Exercise.notes).
-  notes: string | null;
+  // The exercise's short note (Exercise.short_note) — shared across every day it appears in.
+  short_note: string | null;
 }
 
 export interface ProgramWorkout {
@@ -77,11 +80,11 @@ export interface CycleWorkoutExercise {
   exercise_name: string;
   exercise_type: ExerciseType | null;
   // The program_exercises row this cycle exercise was stamped from, if it still exists (null
-  // if the program workout or this exercise's entry in it was deleted after the cycle
-  // started). Editing the note here edits the same underlying program_exercises.notes row
-  // shown in EditProgramWorkoutScreen — it's one shared note, not a per-cycle copy.
+  // if the program workout or this exercise's entry in it was deleted after the cycle started).
   program_exercise_id: number | null;
-  program_exercise_notes: string | null;
+  // The exercise's short note (Exercise.short_note) — the same note shown on every day and in
+  // EditProgramWorkoutScreen. Null if none, or if the exercise was deleted.
+  short_note: string | null;
   // The program's target rep count for this exercise, if a program_exercises row still
   // exists for it — shown as a grey placeholder suggestion on each unlogged set, not
   // preloaded as a real value (see WorkoutScreen's SetRow).

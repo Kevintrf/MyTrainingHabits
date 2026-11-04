@@ -4,6 +4,7 @@ import { AppProvider } from './src/context/AppContext';
 import { SetTimePromptProvider } from './src/context/SetTimePromptContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import RestTimerBanner from './src/components/RestTimerBanner';
+import NoteConflictPrompt from './src/components/NoteConflictPrompt';
 import { initSchema } from './src/db/schema';
 
 // Run synchronously at module load — creates tables and seeds defaults on first
@@ -18,6 +19,7 @@ export default function App() {
         <View style={{ flex: 1 }}>
           <RootNavigator />
           <RestTimerBanner />
+          <NoteConflictPrompt />
         </View>
       </SetTimePromptProvider>
     </AppProvider>

@@ -19,7 +19,7 @@ import SetTimeChoiceToast from '../components/SetTimeChoiceToast';
 import { CycleStackParamList } from '../navigation/RootNavigator';
 import { getCycleWorkoutDetail } from '../db/cycles';
 import { addSet, getLastSetsForExercise, markSetComplete, updateSet } from '../db/sets';
-import { updateProgramExercise } from '../db/program';
+import { updateExerciseShortNote } from '../db/exercises';
 import { getSettings } from '../db/settings';
 import { suggestCompletionTime } from '../utils/setTiming';
 import { CycleSet, CycleWorkoutDetail, CycleWorkoutExercise } from '../services/api';
@@ -140,10 +140,9 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
   const navigation = useNavigation<NativeStackNavigationProp<CycleStackParamList>>();
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
-  const [noteDraft, setNoteDraft] = useState(exercise.program_exercise_notes ?? '');
+  const [noteDraft, setNoteDraft] = useState(exercise.short_note ?? '');
   const allDone = exercise.sets.length > 0 && exercise.sets.every((s) => s.is_complete);
   const exerciseId = exercise.exercise_id;
-  const programExerciseId = exercise.program_exercise_id;
 
   async function handleAddSet() {
     if (exerciseId === null) return;
@@ -152,15 +151,15 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
   }
 
   function handleStartEditNote() {
-    if (programExerciseId === null) return;
-    setNoteDraft(exercise.program_exercise_notes ?? '');
+    if (exerciseId === null) return;
+    setNoteDraft(exercise.short_note ?? '');
     setEditingNote(true);
   }
 
   async function handleCommitNote() {
     setEditingNote(false);
-    if (programExerciseId === null) return;
-    await updateProgramExercise(programExerciseId, { notes: noteDraft.trim() || null });
+    if (exerciseId === null) return;
+    await updateExerciseShortNote(exerciseId, noteDraft);
     onChanged();
   }
 
@@ -170,7 +169,7 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
         style={styles.cardHeader}
         activeOpacity={0.6}
         onPress={() => setExpanded((v) => !v)}
-        onLongPress={programExerciseId !== null ? handleStartEditNote : undefined}
+        onLongPress={exerciseId !== null ? handleStartEditNote : undefined}
         delayLongPress={350}
       >
         <View style={styles.cardHeaderText}>
@@ -178,8 +177,8 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
           <Text style={styles.exerciseMeta}>
             {exercise.sets.length} sets{exerciseId === null ? ' · removed from library' : ''}
           </Text>
-          {!!exercise.program_exercise_notes && !editingNote && (
-            <Text style={styles.exerciseNote} numberOfLines={1}>{exercise.program_exercise_notes}</Text>
+          {!!exercise.short_note && !editingNote && (
+            <Text style={styles.exerciseNote}>{exercise.short_note}</Text>
           )}
         </View>
 
@@ -213,6 +212,8 @@ function ExerciseCard({ exercise, lastSets, onChanged, resolveCompletedAt }: {
           placeholder="Add a note for this exercise..."
           placeholderTextColor="#bbb"
           autoFocus
+          multiline
+          submitBehavior="blurAndSubmit"
           returnKeyType="done"
           autoComplete="off" textContentType="none" importantForAutofill="no"
         />

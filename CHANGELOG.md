@@ -4,6 +4,13 @@ All changes to the project are documented here.
 
 ---
 
+## 2026-11-04 (29)
+
+### feat: exercise notes shared across every day
+The short note under an exercise's name (long-press to edit, in both the program editor and live workouts) was stored per program workout, so the same exercise on two different days had two separate notes. It now belongs to the exercise itself — new `exercises.short_note` column — and editing it anywhere changes it on every day that exercise appears. On launch, `migrateProgramExerciseNotes()` moves existing `program_exercises.notes` over wherever they agree (identical apart from surrounding whitespace) and clears them; exercises left with different notes on different days are shown in a new startup dialog (`NoteConflictPrompt`) that asks, one exercise at a time, which note to keep, listing the workout days each note came from. The old column stays only as migration input. Long notes now wrap onto multiple lines instead of being cut off after one, both when shown and while editing (Done still closes the editor).
+
+---
+
 ## 2026-11-04 (28)
 
 ### feat: "Headphones only" option for the rest-complete sound

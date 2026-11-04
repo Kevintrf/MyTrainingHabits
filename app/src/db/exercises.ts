@@ -8,6 +8,7 @@ interface ExerciseRow {
   type: string;
   source: string;
   notes: string | null;
+  short_note: string | null;
   equipment: string | null;
   level: string | null;
   category: string | null;
@@ -16,7 +17,7 @@ interface ExerciseRow {
   created_at: string;
 }
 
-const EXERCISE_COLUMNS = 'id, name, muscle_group, type, source, notes, equipment, level, category, instructions, source_slug, created_at';
+const EXERCISE_COLUMNS = 'id, name, muscle_group, type, source, notes, short_note, equipment, level, category, instructions, source_slug, created_at';
 
 function mapExercise(row: ExerciseRow): Exercise {
   return {
@@ -26,6 +27,7 @@ function mapExercise(row: ExerciseRow): Exercise {
     type: row.type as ExerciseType,
     source: row.source as Exercise['source'],
     notes: row.notes,
+    short_note: row.short_note,
     equipment: row.equipment,
     level: row.level,
     category: row.category,
@@ -93,6 +95,56 @@ export async function createExercise(data: {
 
 export async function updateExerciseNotes(id: number, notes: string): Promise<void> {
   await db.runAsync('UPDATE exercises SET notes = ? WHERE id = ?', [notes || null, id]);
+}
+
+// The short one-line-ish note shown under the exercise's name on every workout day.
+export async function updateExerciseShortNote(id: number, note: string | null): Promise<void> {
+  await db.runAsync('UPDATE exercises SET short_note = ? WHERE id = ?', [note?.trim() || null, id]);
+}
+
+// Exercises whose short note couldn't be migrated automatically because different program
+// workouts had different notes for it (see migrateProgramExerciseNotes in schema.ts). Each
+// option lists the program workouts that used it, so the user can tell them apart.
+export interface ShortNoteConflict {
+  exercise_id: number;
+  exercise_name: string;
+  options: { note: string; workouts: string[] }[];
+}
+
+export async function getShortNoteConflicts(): Promise<ShortNoteConflict[]> {
+  const rows = await db.getAllAsync<{ exercise_id: number; exercise_name: string; short_note: string | null; note: string; workout_label: string }>(
+    `SELECT e.id AS exercise_id, e.name AS exercise_name, e.short_note,
+            TRIM(pe.notes) AS note, pw.label AS workout_label
+     FROM program_exercises pe
+     JOIN exercises e ON e.id = pe.exercise_id
+     JOIN program_workouts pw ON pw.id = pe.program_workout_id
+     WHERE pe.notes IS NOT NULL AND TRIM(pe.notes) != ''
+     ORDER BY e.name, pw.order_index`,
+  );
+  const map = new Map<number, ShortNoteConflict>();
+  for (const row of rows) {
+    let conflict = map.get(row.exercise_id);
+    if (!conflict) {
+      conflict = { exercise_id: row.exercise_id, exercise_name: row.exercise_name, options: [] };
+      if (row.short_note?.trim()) conflict.options.push({ note: row.short_note.trim(), workouts: [] });
+      map.set(row.exercise_id, conflict);
+    }
+    let option = conflict.options.find((o) => o.note === row.note);
+    if (!option) {
+      option = { note: row.note, workouts: [] };
+      conflict.options.push(option);
+    }
+    if (!option.workouts.includes(row.workout_label)) option.workouts.push(row.workout_label);
+  }
+  return Array.from(map.values()).filter((c) => c.options.length > 1);
+}
+
+// Keeps `note` as the exercise's short note and drops the old per-workout copies.
+export async function resolveShortNoteConflict(exerciseId: number, note: string): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE exercises SET short_note = ? WHERE id = ?', [note, exerciseId]);
+    await db.runAsync('UPDATE program_exercises SET notes = NULL WHERE exercise_id = ?', [exerciseId]);
+  });
 }
 
 // Scoped to source = 'USER' as a defense-in-depth check — the seed library (free-exercise-db)

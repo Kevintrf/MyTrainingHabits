@@ -25,7 +25,7 @@ import {
   updateProgramExercise,
   reorderProgramExercises,
 } from '../db/program';
-import { searchExercises } from '../db/exercises';
+import { searchExercises, updateExerciseShortNote } from '../db/exercises';
 import { ProgramWorkout, ProgramExercise, Exercise } from '../services/api';
 
 export default function EditProgramWorkoutScreen() {
@@ -102,12 +102,13 @@ export default function EditProgramWorkoutScreen() {
 
   function handleStartEditNote(pe: ProgramExercise) {
     setEditingNoteId(pe.id);
-    setNoteDraft(pe.notes ?? '');
+    setNoteDraft(pe.short_note ?? '');
   }
 
-  async function handleCommitNote(programExerciseId: number) {
+  // The note belongs to the exercise itself, so it changes on every day that uses it.
+  async function handleCommitNote(pe: ProgramExercise) {
     setEditingNoteId(null);
-    await updateProgramExercise(programExerciseId, { notes: noteDraft.trim() || null });
+    await updateExerciseShortNote(pe.exercise_id, noteDraft);
     if (workoutId) await load(workoutId);
   }
 
@@ -172,8 +173,8 @@ export default function EditProgramWorkoutScreen() {
                     delayLongPress={350}
                   >
                     <Text style={styles.exerciseName}>{pe.exercise_name}</Text>
-                    {!!pe.notes && editingNoteId !== pe.id && (
-                      <Text style={styles.exerciseNote} numberOfLines={1}>{pe.notes}</Text>
+                    {!!pe.short_note && editingNoteId !== pe.id && (
+                      <Text style={styles.exerciseNote}>{pe.short_note}</Text>
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleRemoveExercise(pe.id)}>
@@ -185,10 +186,12 @@ export default function EditProgramWorkoutScreen() {
                     style={styles.noteInput}
                     value={noteDraft}
                     onChangeText={setNoteDraft}
-                    onBlur={() => handleCommitNote(pe.id)}
+                    onBlur={() => handleCommitNote(pe)}
                     placeholder="Add a note for this exercise..."
                     placeholderTextColor="#bbb"
                     autoFocus
+                    multiline
+                    submitBehavior="blurAndSubmit"
                     returnKeyType="done"
                     autoComplete="off" textContentType="none" importantForAutofill="no"
                   />
